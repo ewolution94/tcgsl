@@ -38,7 +38,7 @@
   <button class="back" type="button" onclick={closeSet}><ChevronLeft size={16} />{t('set.back')}</button>
 
   <header class="hero">
-    <div class="logo"><img class="f set-logo" use:load={{ src: img.logo(s.id, 480), eager: true }} alt="" width="260" height="104" fetchpriority="high" /></div>
+    <div class="logo ph-box"><ewo-skeleton class="ph ph--bar" width="100%" height="100%" radius="md"></ewo-skeleton><img class="f set-logo" use:load={{ src: img.logo(s.id, 480), eager: true }} alt="" width="260" height="104" fetchpriority="high" /></div>
     <h1>{s.name}</h1>
     <div class="facts">
       <span><img class="f" use:load={{ src: img.symbol(s.id), eager: true }} alt="" width="16" height="16" />{s.series}</span>
@@ -54,7 +54,7 @@
       {#each s.top as c (c.k)}
         <li>
           <button type="button" onclick={() => openKey(c.k)}>
-            <div class="thumb" style:background={c.c}><img class="f" use:load={{ src: img.card(s.id, c.k), eager: true }} alt={c.name} width="245" height="342" /></div>
+            <div class="thumb ph-box tinted" style:--c={c.c}><ewo-skeleton class="ph" width="100%" height="100%" radius="none"></ewo-skeleton><img class="f" use:load={{ src: img.card(s.id, c.k), eager: true }} alt={c.name} width="245" height="342" /></div>
             <div class="cap"><span>{c.name}</span></div>
             {#if c.p}<div class="price">{euro(c.p)}</div>{/if}
           </button>
@@ -66,12 +66,23 @@
   <div class="grid-h"><h2>{t('set.allCards')}</h2><span class="mono muted">{s.total}</span></div>
   {#if failed}
     <p class="muted">{t('list.error')}</p>
+  {:else if !cards}
+    <!-- The card list is on its way: a screen of skeleton cards in the same grid. -->
+    <p class="sr" role="status">{t('set.loading')}</p>
+    <ol class="cards all" aria-hidden="true">
+      {#each Array(Math.min(12, s.total)) as _, i (i)}
+        <li>
+          <div class="thumb ph-box"><ewo-skeleton class="ph" width="100%" height="100%" radius="none"></ewo-skeleton></div>
+          <div class="cap"><ewo-skeleton width="72%" height="0.75rem"></ewo-skeleton></div>
+        </li>
+      {/each}
+    </ol>
   {:else}
-    <ol class="cards all" aria-busy={!cards}>
-      {#each cards ?? [] as [key, number, name], i (key)}
+    <ol class="cards all">
+      {#each cards as [key, number, name], i (key)}
         <li>
           <button type="button" onclick={() => (viewing = i)}>
-            <div class="thumb"><img class="f" use:load={{ src: img.card(s.id, key), eager: i < 6 }} alt={name} width="245" height="342" decoding="async" /></div>
+            <div class="thumb ph-box"><ewo-skeleton class="ph" width="100%" height="100%" radius="none"></ewo-skeleton><img class="f" use:load={{ src: img.card(s.id, key), eager: i < 6 }} alt={name} width="245" height="342" decoding="async" /></div>
             <div class="cap"><span class="mono">{number}</span><span>{name}</span></div>
           </button>
         </li>
@@ -200,11 +211,15 @@
   }
 
   .thumb {
-    position: relative;
     aspect-ratio: 245 / 342;
     border-radius: 4.5% / 3.2%;
     overflow: hidden;
     background: var(--ewo-fill-2);
+  }
+
+  /* A top card shows its own colour, softened, under the sheen until it's in (see SetList). */
+  .thumb.tinted {
+    background: color-mix(in oklab, var(--c, transparent) 40%, var(--ewo-fill-2));
   }
 
   .thumb img {

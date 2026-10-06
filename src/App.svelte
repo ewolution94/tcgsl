@@ -5,6 +5,7 @@
 <script lang="ts">
   import Footer from './components/Footer.svelte';
   import Header from './components/Header.svelte';
+  import ListSkeleton from './components/ListSkeleton.svelte';
   import SetList from './components/SetList.svelte';
   import SetPage from './components/SetPage.svelte';
   import Settings from './components/Settings.svelte';
@@ -83,6 +84,8 @@
       <p>{t('list.error')}</p>
       <button type="button" onclick={start}>{t('list.retry')}</button>
     </div>
+  {:else}
+    <ListSkeleton />
   {/if}
 </main>
 

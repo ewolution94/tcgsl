@@ -75,6 +75,27 @@ img.f.in {
   transition: opacity 240ms var(--ewo-ease);
 }
 
+/* A Folio skeleton under an image while it loads, for slow connections. Once the image is in
+   (lib/images.ts adds .in, on error too) the skeleton goes: display: none also stops its sheen,
+   so a loaded page never animates. The box keeps the skeleton's base colour underneath, so the
+   image fades in over the same grey. */
+.ph-box {
+  position: relative;
+}
+
+.ph-box > .ph {
+  position: absolute;
+  inset: 0;
+}
+
+.ph-box > .ph--bar {
+  inset: 20% 0;
+}
+
+.ph-box:has(> img.in) > .ph {
+  display: none;
+}
+
 /* White and silver set logos (Black Bolt, the Black & White era) vanish on paper; a hairline
    shadow outlines them in light mode only. */
 :root[data-theme='light'] img.set-logo {

@@ -39,6 +39,11 @@ native `loading="lazy"` fetched 186 images at the top of the page in Chrome), of
 rendering with `content-visibility`, every image's box is reserved, and each card shows its
 dominant colour until it arrives. The first phone screen costs about 270 KB of images.
 
+**Slow connections.** Folio's skeletons stand in for what's on its way: the list (same grid as the
+real rows, so nothing jumps), a set's card grid, and every logo and card image, with the card's
+softened colour under the sheen. A skeleton goes the moment its image is in (`display: none` in
+`app.css`, which also stops the sheen), so a loaded page never animates.
+
 ## Deploy (NAS)
 
 CI on `release` (typecheck, tests, build, a smoke test of the production server) publishes

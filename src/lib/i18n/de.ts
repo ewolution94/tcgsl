@@ -13,6 +13,7 @@ export const de: Record<MessageKey, string> = {
   'list.cards.one': '{count} Karte',
   'list.cards.other': '{count} Karten',
   'list.empty': 'Kein Set passt.',
+  'list.loading': 'Die Sets werden geladen …',
   'list.error': 'Die Sets wurden nicht geladen.',
   'list.retry': 'Nochmal versuchen',
 
@@ -26,6 +27,7 @@ export const de: Record<MessageKey, string> = {
   'set.trend': 'Cardmarket-Trend',
   'set.noPrices': 'noch keine Preise',
   'set.allCards': 'Alle Karten',
+  'set.loading': 'Die Karten werden geladen …',
 
   'viewer.label': 'Karte',
   'viewer.close': 'Schließen',

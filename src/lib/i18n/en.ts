@@ -10,6 +10,7 @@ export const en = {
   'list.cards.one': '{count} card',
   'list.cards.other': '{count} cards',
   'list.empty': 'No sets match.',
+  'list.loading': 'Loading the sets…',
   'list.error': 'The sets didn’t load.',
   'list.retry': 'Try again',
 
@@ -23,6 +24,7 @@ export const en = {
   'set.trend': 'Cardmarket trend',
   'set.noPrices': 'no prices yet',
   'set.allCards': 'All cards',
+  'set.loading': 'Loading the cards…',
 
   'viewer.label': 'Card',
   'viewer.close': 'Close',

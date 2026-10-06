@@ -124,7 +124,7 @@
             <li class="row" hidden={!hit(s)}>
               <a href="#/set/{s.id}" onclick={(e) => open(e, s.id)}>
                 <time class="d" datetime={s.date}><b>{d.day}</b><span class="mono muted">{d.month}</span></time>
-                <span class="logo"><img class="f set-logo" use:load={{ src: img.logo(s.id), eager }} alt="" width="160" height="64" decoding="async" fetchpriority={i < 4 ? 'high' : undefined} /></span>
+                <span class="logo ph-box"><ewo-skeleton class="ph ph--bar" width="100%" height="100%" radius="sm"></ewo-skeleton><img class="f set-logo" use:load={{ src: img.logo(s.id), eager }} alt="" width="160" height="64" decoding="async" fetchpriority={i < 4 ? 'high' : undefined} /></span>
                 <span class="txt">
                   <b>{s.name}</b>
                   <small><img class="f" use:load={{ src: img.symbol(s.id), eager }} alt="" width="14" height="14" decoding="async" /><span>{tn('list.cards', s.total)} · {s.series}</span></small>
@@ -132,7 +132,7 @@
                 <span class="peek" aria-hidden="true">
                   {#each s.top as c, ci (c.k)}
                     <!-- Only the front card loads eagerly: the other two are hidden on phones. -->
-                    <i style:--c={c.c ?? 'var(--ewo-fill-2)'}><img class="f" use:load={{ src: img.card(s.id, c.k, 120), eager: eager && ci === 0 }} alt="" width="42" height="58" decoding="async" /></i>
+                    <i class="ph-box" style:--c={c.c}><ewo-skeleton class="ph" width="100%" height="100%" radius="none"></ewo-skeleton><img class="f" use:load={{ src: img.card(s.id, c.k, 120), eager: eager && ci === 0 }} alt="" width="42" height="58" decoding="async" /></i>
                   {/each}
                 </span>
               </a>
@@ -411,12 +411,14 @@
     height: 53px;
   }
 
-  .peek i {
+  /* The card's own colour, softened (a dominant colour is often its black, white or silver
+     border), under the skeleton's sheen until the image is in. */
+  .peek i.ph-box {
     position: absolute;
     inset: 0;
     border-radius: 3px;
     overflow: hidden;
-    background: var(--c, var(--ewo-fill-2));
+    background: color-mix(in oklab, var(--c, transparent) 40%, var(--ewo-fill-2));
     box-shadow: 0 1px 3px rgb(0 0 0 / 0.18);
   }
 
