@@ -16,7 +16,7 @@
 
 import http from 'node:http';
 import { createReadStream } from 'node:fs';
-import { cp, readFile, stat } from 'node:fs/promises';
+import { cp, readFile, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
@@ -67,13 +67,20 @@ const SECURITY_HEADERS = {
 const census = createCensus({ target: process.env.TCGSL_CENSUS ?? '', site: 'tcgsl' });
 const compressed = new Map();
 
-// A fresh volume starts from the snapshot the image ships with; the first refresh updates it. A
-// volume from before the Japanese sets (no sets-ja.json) is seeded again the same way.
+// The volume keeps whichever snapshot is newer: the one the image ships with (a release brings
+// its data along at once) or the volume's own (a daily refresh is never set back). A fresh volume,
+// or one from before the Japanese sets, takes the image's.
 const SEED = path.resolve(process.env.TCGSL_SEED ?? fileURLToPath(new URL('../data', import.meta.url)));
+const builtAt = (dir) =>
+  readFile(path.join(dir, 'sets.json'), 'utf8').then((text) => Date.parse(JSON.parse(text).built) || 0, () => 0);
 const has = (file) => stat(path.join(DATA, file)).catch(() => null);
-if (SEED !== DATA && (!(await has('sets.json')) || !(await has('sets-ja.json')))) {
-  await cp(SEED, DATA, { recursive: true });
-  console.log(`seeded ${DATA} from ${SEED}`);
+if (SEED !== DATA) {
+  const [seed, volume] = await Promise.all([builtAt(SEED), builtAt(DATA)]);
+  if (!volume || !(await has('sets-ja.json')) || seed > volume) {
+    await rm(DATA, { recursive: true, force: true });
+    await cp(SEED, DATA, { recursive: true });
+    console.log(`seeded ${DATA} from ${SEED} (snapshot of ${new Date(seed).toISOString()})`);
+  }
 }
 await loadUpstream();
 
