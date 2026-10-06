@@ -36,7 +36,7 @@ export const en = {
   'viewer.next': 'Next card',
 
   'foot.count': '{count} sets, snapshot of {date}',
-  'foot.legal': 'Data and images: pokemontcg.io; Japanese sets from TCGdex, images from Scrydex. Pokémon © Nintendo, Creatures, GAME FREAK. Fan project, not affiliated.',
+  'foot.legal': 'Data and images: pokemontcg.io; Japanese sets from TCGdex, their English names from Limitless TCG, images from Scrydex and TCGdex. Pokémon © Nintendo, Creatures, GAME FREAK. Fan project, not affiliated.',
 
   // Settings
   'settings.title': 'Settings',

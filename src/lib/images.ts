@@ -29,12 +29,13 @@ const near = new IntersectionObserver(
  */
 export function load(node: HTMLImageElement, opts: { src: string; eager?: boolean }) {
   const shown = () => node.classList.add('in');
+  const broken = () => node.classList.add('in', 'broken');
   node.addEventListener('load', shown);
-  node.addEventListener('error', shown);
+  node.addEventListener('error', broken);
 
   const apply = ({ src, eager }: { src: string; eager?: boolean }) => {
     if (node.getAttribute('src') === src || node.dataset.src === src) return;
-    node.classList.remove('in');
+    node.classList.remove('in', 'broken');
     if (eager) {
       delete node.dataset.src;
       node.src = src;
@@ -51,7 +52,7 @@ export function load(node: HTMLImageElement, opts: { src: string; eager?: boolea
     destroy() {
       near.unobserve(node);
       node.removeEventListener('load', shown);
-      node.removeEventListener('error', shown);
+      node.removeEventListener('error', broken);
     },
   };
 }

@@ -36,7 +36,7 @@ export const KINDS = {
   card: { widths: [120, 240], src: (set, n) => tmpl(set, n, 'card'), quality: 76 },
   'card-hd': { widths: [480, 734], src: (set, n) => tmpl(set, n, 'hd'), quality: 80 },
 };
-const HOSTS = new Set(['images.pokemontcg.io', 'images.scrydex.com']);
+const HOSTS = new Set(['images.pokemontcg.io', 'images.scrydex.com', 'assets.tcgdex.net']);
 
 // English sets are pokemontcg.io ids (`sv8`), Japanese ones Scrydex ids (`m3_ja`).
 const SET_RE = /^[a-z0-9]{1,16}(_ja)?$/;

@@ -1,6 +1,6 @@
 # TCGSL (TCG Setlist)
 
-Every Pokémon TCG set, English and Japanese (a switch at the top of the list), newest first, with
+Every Pokémon TCG set, English and Japanese (the EN | JP switch in the header), newest first, with
 real set logos, symbols and card images: one row per set, grouped by year, with a year scrubber on
 phones. Tapping a set opens its page with the most
 valuable cards (Cardmarket trend prices) and the full card list. Settings (the gear, or `,`) has the
@@ -29,9 +29,19 @@ Scrydex's public image server (its API is paid, so it isn't used). Scrydex's ids
 without the API, so each set's is found by trying the spellings TCGdex's id suggests (`M3` →
 `m3_ja`, `CS3.5` → `cs3pt5_ja`) until card 1 is a real picture: Scrydex answers an unknown id with a
 placeholder, which `images.mjs` recognises by its bytes. Found ids are kept in `upstream.json`, so
-only new sets are tried again. 111 of 181 sets had pictures on 2026-10-06; the others are listed with
-their printed code instead of a logo, and their cards as a plain list. Japanese sets have no prices,
-so their top cards are the highest-numbered ones, secret rares first.
+only new sets are tried again. Where Scrydex has none, TCGdex's own card images stand in (it has no
+Japanese logos). On 2026-10-06: 111 of 181 sets with Scrydex pictures, 11 more with TCGdex's, 92
+with a real logo; a set without one shows the code printed on its cards, and a set without card
+pictures lists its cards as plain text. Japanese sets have no prices, so their top cards are the
+highest-numbered ones, secret rares first.
+
+English names come from Limitless TCG's Japanese set list (one request per refresh; its robots.txt
+allows it), matched by set code when the release dates are within 120 days. The split sets released
+on one day are pinned by their Japanese names, since the two sites letter them differently (TCGdex's
+`XY8b` is the red half, Limitless's the blue). Limitless starts at Black & White, so older sets keep
+their Japanese names: 128 of 181 had English ones. The series names are a fixed table. The search
+still finds the Japanese names. TCGdex lists the Sun & Moon "plus" sets twice (`SM1+` and `SM1p`);
+only the `p` spelling is kept.
 
 **Images.** `server/images.mjs` fetches each upstream PNG once, resizes it to a fixed width the UI
 actually draws, encodes WebP and keeps both on disk (`cache/`). `server/routes.mjs` serves `/img/…`

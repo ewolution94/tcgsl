@@ -20,8 +20,12 @@ export interface CardSet {
   printed: number;
   total: number;
   code: string | null;
-  /** False for a Japanese set whose pictures couldn't be found (no logo, no card images). */
+  /** A Japanese set's own name; `name` is its English one where known. */
+  ja?: string;
+  /** False for a Japanese set with no card pictures (from Scrydex or TCGdex): a plain card list. */
   pics?: boolean;
+  /** False for a Japanese set without a real logo and symbol: its printed code stands in. */
+  logo?: boolean;
   top: TopCard[];
 }
 
@@ -51,7 +55,7 @@ export async function loadIndex(region: 'en' | 'ja' = 'en'): Promise<Index> {
   const listed = sets.map((s) => ({
     ...s,
     secret: Math.max(0, s.total - s.printed),
-    hay: `${s.name} ${s.series} ${s.code ?? ''} ${s.id}`.toLowerCase(),
+    hay: `${s.name} ${s.ja ?? ''} ${s.series} ${s.code ?? ''} ${s.id}`.toLowerCase(),
   }));
   return { built, sets: listed, bySet: new Map(listed.map((s) => [s.id, s])) };
 }

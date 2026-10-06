@@ -217,6 +217,66 @@ export async function refresh({ data, apiCache, log = () => {} }) {
 
 const TCGDEX = 'https://api.tcgdex.net/v2/ja';
 const SCRYDEX = 'https://images.scrydex.com/pokemon';
+const LIMITLESS = 'https://limitlesstcg.com/cards/jp';
+
+// English names: Limitless TCG lists the Japanese sets from Black & White on with their English
+// names (robots.txt allows it; one request per refresh). Its codes mostly equal TCGdex's, and a
+// match only counts when the release dates are within 120 days (the two sites disagree by up to
+// three months on a few sets; a code reused across eras would be years out). Split sets released on one day can't be
+// told apart by date, and the two sites letter them differently (TCGdex's XY8b is the red one,
+// Limitless's the blue), so those are pinned here by their Japanese names.
+const LIMITLESS_CODE = {
+  XY1a: 'XY1x', // コレクションX
+  XY1b: 'XY1y', // コレクションY
+  XY5a: 'XY5g', // ガイアボルケーノ
+  XY5b: 'XY5t', // タイダルストーム
+  XY8a: 'XY8b', // 青い衝撃
+  XY8b: 'XY8r', // 赤い閃光
+  XY11a: 'XY11b', // 爆熱の闘士
+  XY11b: 'XY11r', // 冷酷の反逆者
+  // Promo collections run for years; their "release dates" differ between the sites.
+  'M-P': 'MP',
+  'SV-P': 'SVP',
+};
+const PINNED = new Set(Object.keys(LIMITLESS_CODE));
+const limitlessCode = (id) => LIMITLESS_CODE[id] ?? id.replace(/\+$/, 'p').replace(/-/g, '');
+
+// TCGdex's Japanese series, in English.
+const SERIES = {
+  M: 'Mega Evolution',
+  SV: 'Scarlet & Violet',
+  S: 'Sword & Shield',
+  SM: 'Sun & Moon',
+  XYb: 'XY BREAK',
+  XY: 'XY',
+  L: 'LEGEND',
+  PCG: 'PCG',
+  ADV: 'ADV',
+  e: 'Pokémon Card e',
+  web: 'web',
+  VS: 'VS',
+  neo: 'neo',
+  PMCG: 'Pocket Monsters Card Game',
+};
+
+const MONTH = { Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06', Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12' };
+const unescape = (s) => s.replace(/&amp;/g, '&').replace(/&#0?39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+
+/** Limitless's Japanese set list: lower-cased code → { name, date } (date '' when it shows none). */
+export function parseLimitless(html) {
+  const out = {};
+  for (const [, row] of html.matchAll(/<tr>([\s\S]*?)<\/tr>/g)) {
+    const cell = /<td><a href="\/cards\/jp\/([^"]+)">([\s\S]*?)<\/a><\/td>/.exec(row);
+    if (!cell) continue;
+    const [, code, raw] = cell;
+    const when = /<td><a[^>]*>(\d{1,2}) (\w{3}) (\d{2})<\/a>/.exec(row);
+    const date = when && MONTH[when[2]] ? `20${when[3]}-${MONTH[when[2]]}-${when[1].padStart(2, '0')}` : '';
+    const name = unescape(raw.replace(/<span class="code annotation">[\s\S]*?<\/span>/g, '').replace(/<[^>]+>/g, '')).trim();
+    const key = code.toLowerCase();
+    if (name && !out[key]) out[key] = { name, date };
+  }
+  return out;
+}
 
 const scrydex = (sid) => ({
   logo: `${SCRYDEX}/${sid}-logo/logo`,
@@ -227,7 +287,7 @@ const scrydex = (sid) => ({
 
 /** The Scrydex ids a TCGdex id might stand for, most likely first; all valid set keys here. */
 export function candidates(id) {
-  const base = id.toLowerCase();
+  const base = id.toLowerCase().replace(/\+/g, 'p');
   const tries = [base.replace(/-/g, ''), base.replace(/\./g, 'pt').replace(/-/g, ''), base.replace(/[.-]/g, '')];
   return [...new Set(tries)].map((c) => `${c}_ja`).filter((c) => /^[a-z0-9]{1,16}_ja$/.test(c));
 }
@@ -237,8 +297,21 @@ const unpad = (n) => n.replace(/^0+(?=\d)/, '');
 
 async function japanese({ next, upstream, known, cached, log }) {
   const getTcgdex = (url) => getJSON(url, 6);
-  const list = await cached('ja-sets', () => getTcgdex(`${TCGDEX}/sets`));
+  const all = await cached('ja-sets', () => getTcgdex(`${TCGDEX}/sets`));
+  // TCGdex lists the Sun & Moon "plus" sets twice, as SM1+ and SM1p: keep the p spelling.
+  const plain = (id) => id.toLowerCase().replace(/\+/g, 'p');
+  const list = all.filter((b) => !(b.id.includes('+') && all.some((o) => o !== b && !o.id.includes('+') && plain(o.id) === plain(b.id))));
+  // English names are a nicety: if Limitless can't be read, the Japanese names stay.
+  const english = await cached('ja-limitless', async () => {
+    const res = await fetch(LIMITLESS, { headers: { 'user-agent': UA } });
+    if (!res.ok) throw new Error(`limitless: HTTP ${res.status}`);
+    return parseLimitless(await res.text());
+  }).catch((err) => {
+    log(`Limitless unreadable (${err.message}); Japanese names only`);
+    return {};
+  });
   if (list.length < 50) throw new Error(`only ${list.length} Japanese sets: refusing to replace the snapshot`);
+
 
   const out = await pool(list, 3, async (brief) => {
     const d = await cached(`ja-set-${brief.id}`, () => getTcgdex(`${TCGDEX}/sets/${encodeURIComponent(brief.id)}`));
@@ -246,7 +319,7 @@ async function japanese({ next, upstream, known, cached, log }) {
     if (!date) return null;
     const official = d.cardCount?.official ?? d.cardCount?.total ?? 0;
     const total = d.cardCount?.total ?? official;
-    let cards = (d.cards ?? []).map((c) => ({ key: unpad(c.localId), number: c.localId, name: c.name }));
+    let cards = (d.cards ?? []).map((c) => ({ key: unpad(c.localId), number: c.localId, name: c.name, image: c.image }));
 
     // Which Scrydex id: the one found before, else the first spelling whose card 1 is real.
     const first = cards[0]?.key ?? '1';
@@ -267,9 +340,18 @@ async function japanese({ next, upstream, known, cached, log }) {
     if (!id) return null;
     if (sid) upstream.sets[sid] = scrydex(sid);
 
+    // No Scrydex pictures: TCGdex's own card images where it has them (no logos there).
+    const fallback = !sid && cards.some((c) => c.image);
+    if (fallback) {
+      for (const c of cards) {
+        if (c.image) upstream.cards[`${id}/${c.key}`] = { card: `${c.image}/low.webp`, hd: `${c.image}/high.webp` };
+      }
+    }
+    const pics = !!sid || fallback;
+
     // TCGdex lists no cards for some sets; with Scrydex's pictures they can still be numbered.
     if (!cards.length && sid && total) {
-      cards = Array.from({ length: total }, (_, i) => ({ key: String(i + 1), number: String(i + 1).padStart(3, '0'), name: '' }));
+      cards = Array.from({ length: total }, (_, i) => ({ key: String(i + 1), number: String(i + 1).padStart(3, '0'), name: '', image: undefined }));
     }
 
     await writeFile(path.join(next, 'sets', `${id}.json`), JSON.stringify({ id, cards: cards.map((c) => [c.key, c.number, c.name, '', 0]) }));
@@ -277,32 +359,53 @@ async function japanese({ next, upstream, known, cached, log }) {
     // No prices or rarities here: the top cards are the highest-numbered, the secret rares past
     // the printed count first, and only ones with a real picture.
     const top = [];
-    if (sid) {
+    let logo = false;
+    if (pics) {
       const ordered = [...cards].sort((a, b) => byNumber(b.number, a.number));
       const secret = ordered.filter((c) => Number.parseInt(c.number, 10) > official);
       let misses = 0;
       for (const c of new Set([...secret, ...ordered])) {
         if (top.length >= 3 || misses >= 12) break;
-        if (await getImage('card', sid, c.key, 240).catch(() => null)) top.push(c);
+        if (await getImage('card', id, c.key, 240).catch(() => null)) top.push(c);
         else misses++;
       }
-      await Promise.all([getImage('logo', sid, null, 320).catch(() => null), getImage('symbol', sid, null, 64).catch(() => null)]);
+    }
+    // A logo only from Scrydex, and only a real one: old sets often have cards but just the
+    // placeholder logo, which images.mjs refuses.
+    if (sid) {
+      const [mark] = await Promise.all([getImage('logo', sid, null, 320).catch(() => null), getImage('symbol', sid, null, 64).catch(() => null)]);
+      logo = !!mark;
     }
     const topOut = await Promise.all(
       top.map(async (c) => ({
         k: c.key,
         name: c.name,
-        c: await getImage('card', sid, c.key, 120).then(() => dominant('card', sid, c.key, 240)).catch(() => null),
+        c: await getImage('card', id, c.key, 120).then(() => dominant('card', id, c.key, 240)).catch(() => null),
         p: 0,
       })),
     );
-    // The TCGdex id is the code printed on the cards ("SV8a"); `pics` is false when Scrydex had none.
-    return { id, name: d.name, series: d.serie?.name ?? '', date, printed: official, total, code: brief.id, pics: !!sid, top: topOut };
+    // The English name where Limitless has the set on the same day (or pinned); else Japanese.
+    const en = english[limitlessCode(brief.id).toLowerCase()];
+    const apart = en?.date ? Math.abs(Date.parse(en.date) - Date.parse(date)) / 86_400_000 : Infinity;
+    const name = en && (PINNED.has(brief.id) || apart <= 120) ? en.name : d.name;
+    const series = SERIES[d.serie?.id] ?? d.serie?.name ?? '';
+    // The TCGdex id is the code printed on the cards ("SV8a"). `pics`: card pictures (Scrydex's,
+    // else TCGdex's); `logo`: a real Scrydex logo and symbol. Either missing, the app makes do.
+    // `ja`: the Japanese name, which the search still finds.
+    return { id, name, ja: d.name, series, date, printed: official, total, code: brief.id, pics, logo, top: topOut };
   });
 
-  const sets = out.filter(Boolean);
+  // One set per id, the one with pictures first: two TCGdex entries for one set must never reach
+  // the app as twins (its list is keyed by id).
+  const seen = new Set();
+  const sets = out
+    .filter(Boolean)
+    .sort((a, b) => Number(b.pics) - Number(a.pics))
+    .filter((s) => (seen.has(s.id) ? (log(`Japanese: dropped a second ${s.id} (${s.code})`), false) : seen.add(s.id)));
   sets.sort((a, b) => b.date.localeCompare(a.date) || a.name.localeCompare(b.name));
   const found = Object.values(upstream.ja).filter(Boolean).length;
-  log(`Japanese: ${sets.length} sets, ${found} with Scrydex pictures`);
+  const tcgdex = sets.filter((s) => s.pics && !upstream.ja[s.code]).length;
+  const named = sets.filter((s) => s.name !== s.ja).length;
+  log(`Japanese: ${sets.length} sets, ${found} with Scrydex pictures, ${tcgdex} more with TCGdex's, ${named} with English names`);
   return sets;
 }

@@ -44,10 +44,10 @@
   <button class="back" type="button" onclick={closeSet}><ChevronLeft size={16} />{t('set.back')}</button>
 
   <header class="hero">
-    {#if s.pics !== false}<div class="logo ph-box"><ewo-skeleton class="ph ph--bar" width="100%" height="100%" radius="md"></ewo-skeleton><img class="f set-logo" use:load={{ src: img.logo(s.id, 480), eager: true }} alt="" width="260" height="104" fetchpriority="high" /></div>{/if}
+    {#if s.logo !== false}<div class="logo ph-box"><ewo-skeleton class="ph ph--bar" width="100%" height="100%" radius="md"></ewo-skeleton><img class="f set-logo" use:load={{ src: img.logo(s.id, 480), eager: true }} alt="" width="260" height="104" fetchpriority="high" /></div>{/if}
     <h1>{s.name}</h1>
     <div class="facts">
-      <span>{#if s.pics !== false}<img class="f" use:load={{ src: img.symbol(s.id), eager: true }} alt="" width="16" height="16" />{/if}{s.series}</span>
+      <span>{#if s.logo !== false}<img class="f" use:load={{ src: img.symbol(s.id), eager: true }} alt="" width="16" height="16" />{/if}{s.series}</span>
       <span>{t('set.released', { date: date(s.date) })}</span>
       <span>{tn('set.printed', s.printed)}{#if s.secret}&nbsp;{t('set.secret', { count: s.secret })}{/if}</span>
       {#if s.code}<span class="mono">{s.code}</span>{/if}

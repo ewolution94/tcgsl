@@ -3,10 +3,10 @@
   is open, so coming back lands at the same scroll position with every image still loaded.
 -->
 <script lang="ts">
+  import { untrack } from 'svelte';
   import Footer from './components/Footer.svelte';
   import Header from './components/Header.svelte';
   import ListSkeleton from './components/ListSkeleton.svelte';
-  import RegionSwitch from './components/RegionSwitch.svelte';
   import SetList from './components/SetList.svelte';
   import SetPage from './components/SetPage.svelte';
   import Settings from './components/Settings.svelte';
@@ -26,7 +26,8 @@
   // The English or the Japanese list (the switch at the top). A link to a set says which: a
   // Japanese id ends in _ja. Each list is loaded once per visit; switching back is instant.
   $effect.pre(() => {
-    if (route.set && regionOf(route.set) !== prefs.region) prefs.region = regionOf(route.set);
+    const id = route.set;
+    if (id) untrack(() => regionOf(id) !== prefs.region && (prefs.region = regionOf(id)));
   });
   const loaded = new Map<Region, Index>();
   let ticket = 0;
@@ -96,7 +97,6 @@
 <Header bind:query bind:input={search} />
 
 <main>
-  {#if !open}<RegionSwitch />{/if}
   {#if index}
     <div hidden={!!open}>
       <SetList {index} {query} />

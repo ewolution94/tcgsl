@@ -75,6 +75,12 @@ img.f.in {
   transition: opacity 240ms var(--ewo-ease);
 }
 
+/* An image that failed (no picture upstream) stays hidden: no broken-image icon, no alt text;
+   its box keeps the placeholder colour. */
+img.f.broken {
+  visibility: hidden;
+}
+
 /* A theme change (theme.svelte.ts, Pinout's way): the page blurs for a moment and the new
    colours come in under it, while Settings (the top layer) stays sharp. Set on the page's parts,
    not on <main>: a filter there would make it the containing block of the fixed year scrubber. */

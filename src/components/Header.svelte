@@ -6,7 +6,7 @@
   import Search from '@lucide/svelte/icons/search';
   import SettingsIcon from '@lucide/svelte/icons/settings';
   import { t } from '../lib/i18n/index.svelte.ts';
-  import { ui } from '../lib/prefs.svelte.ts';
+  import { prefs, ui, type Region } from '../lib/prefs.svelte.ts';
   import { route, closeSet } from '../lib/router.svelte.ts';
 
   let { query = $bindable(''), input = $bindable() }: { query: string; input?: HTMLInputElement } = $props();
@@ -19,6 +19,13 @@
     return () => removeEventListener('scroll', onScroll);
   });
 
+  // English or Japanese releases. From a set page this goes back to the list, since the set
+  // belongs to the other one.
+  function region(next: Region) {
+    prefs.region = next;
+    if (route.set) closeSet();
+  }
+
   function home(event: MouseEvent) {
     event.preventDefault();
     if (route.set) closeSet();
@@ -28,7 +35,7 @@
 
 <header class="bar shifts" class:scrolled>
   <div class="row">
-    <a class="brand" href="/" onclick={home}><img src="/icon.svg" alt="" width="26" height="26" />TCGSL</a>
+    <a class="brand" href="/" onclick={home}><img src="/icon.svg" alt="" width="26" height="26" /><span class="word">TCGSL</span></a>
     <label class="search">
       <span class="sr">{t('search.label')}</span>
       <Search size={15} aria-hidden="true" />
@@ -42,6 +49,10 @@
         oninput={() => route.set && closeSet()}
       />
     </label>
+    <ewo-segmented class="regions" size="sm" label={t('region.label')} title={t('region.label')} value={prefs.region} onchange={(e) => region(e.detail.value as Region)}>
+      <option value="en">EN</option>
+      <option value="ja">JP</option>
+    </ewo-segmented>
     <button class="gear" type="button" onclick={() => (ui.settings = true)} aria-label={t('nav.settings')} title={t('nav.settings')}>
       <SettingsIcon size={19} />
     </button>
@@ -82,6 +93,21 @@
     letter-spacing: -0.01em;
     font-size: var(--ewo-text-lg);
     white-space: nowrap;
+  }
+
+  .regions {
+    flex: none;
+  }
+
+  /* On a phone the icon alone names the app, so the search keeps its room next to the switch. */
+  @media (max-width: 479.98px) {
+    .brand .word {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
   }
 
   .search {

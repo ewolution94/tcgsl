@@ -131,15 +131,15 @@
             <li class="row" data-set-row={s.id} hidden={!hit(s)}>
               <a href="#/set/{s.id}" onclick={(e) => open(e, s.id)}>
                 <time class="d" datetime={s.date}><b>{d.day}</b><span class="mono muted">{d.month}</span></time>
-                {#if s.pics === false}
-                  <!-- No pictures found for this (Japanese) set: its printed code stands in for the logo. -->
+                {#if s.logo === false}
+                  <!-- No logo found for this (Japanese) set: its printed code stands in. -->
                   <span class="logo code"><span class="mono">{s.code}</span></span>
                 {:else}
                   <span class="logo ph-box"><ewo-skeleton class="ph ph--bar" width="100%" height="100%" radius="sm"></ewo-skeleton><img class="f set-logo" use:load={{ src: img.logo(s.id), eager }} alt="" width="160" height="64" decoding="async" fetchpriority={i < 4 ? 'high' : undefined} /></span>
                 {/if}
                 <span class="txt">
                   <b>{s.name}</b>
-                  <small>{#if s.pics !== false}<img class="f" use:load={{ src: img.symbol(s.id), eager }} alt="" width="14" height="14" decoding="async" />{/if}<span>{tn('list.cards', s.total)} · {s.series}</span></small>
+                  <small>{#if s.logo !== false}<img class="f" use:load={{ src: img.symbol(s.id), eager }} alt="" width="14" height="14" decoding="async" />{/if}<span>{tn('list.cards', s.total)} · {s.series}</span></small>
                 </span>
                 {#if prefs.previews}
                   <span class="peek" aria-hidden="true">

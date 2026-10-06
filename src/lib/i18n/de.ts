@@ -39,7 +39,7 @@ export const de: Record<MessageKey, string> = {
   'viewer.next': 'Nächste Karte',
 
   'foot.count': '{count} Sets, Stand {date}',
-  'foot.legal': 'Daten und Bilder: pokemontcg.io; japanische Sets von TCGdex, Bilder von Scrydex. Pokémon © Nintendo, Creatures, GAME FREAK. Fanprojekt, nicht mit den Rechteinhabern verbunden.',
+  'foot.legal': 'Daten und Bilder: pokemontcg.io; japanische Sets von TCGdex, ihre englischen Namen von Limitless TCG, Bilder von Scrydex und TCGdex. Pokémon © Nintendo, Creatures, GAME FREAK. Fanprojekt, nicht mit den Rechteinhabern verbunden.',
 
   'settings.title': 'Einstellungen',
   'settings.list': 'Liste',

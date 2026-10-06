@@ -34,7 +34,7 @@ test('a TCGdex id gives the Scrydex ids it may stand for, valid keys only', () =
   assert.deepEqual(candidates('M3'), ['m3_ja']);
   assert.deepEqual(candidates('M-P'), ['mp_ja']);
   assert.deepEqual(candidates('CS3.5'), ['cs3pt5_ja', 'cs35_ja']);
-  assert.deepEqual(candidates('SM1+'), []);
+  assert.deepEqual(candidates('SM1+'), ['sm1p_ja']);
   assert.ok(parse('card', 'cs3pt5_ja', '12', 240));
   assert.equal(parse('card', 'cs3.5_ja', '12', 240), null);
 });
