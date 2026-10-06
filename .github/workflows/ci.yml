@@ -1,0 +1,65 @@
+name: CI
+
+# Runs on pull requests, and is the gate docker-publish.yml calls before it publishes
+# anything, so the checks guarding a PR and the checks guarding a deploy can't drift apart.
+on:
+  pull_request:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    name: Typecheck, test, build
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          # Matches the Dockerfile.
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run check
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # The built page served by the real production server.
+      - name: Smoke test the production server
+        run: |
+          PORT=5799 TCGSL_REFRESH=off node server/server.mjs &
+          for _ in $(seq 1 20); do curl -sf http://127.0.0.1:5799/healthz && break; sleep 0.5; done
+          curl -sf http://127.0.0.1:5799/ | grep -q '<title>TCGSL · TCG Setlist</title>'
+          curl -sf http://127.0.0.1:5799/anything | grep -q '<title>TCGSL · TCG Setlist</title>'
+          curl -sI http://127.0.0.1:5799/ | grep -qi "content-security-policy: default-src 'self'"
+          curl -sI http://127.0.0.1:5799/ | grep -qi "cache-control: no-cache"
+          curl -sf http://127.0.0.1:5799/manifest.webmanifest | grep -q '"short_name": "TCGSL"'
+          curl -sf -o /dev/null http://127.0.0.1:5799/sw.js
+          curl -sf -o /dev/null http://127.0.0.1:5799/og.png
+          asset=$(curl -s http://127.0.0.1:5799/ | grep -o '/assets/[^"]*\.js' | head -1)
+          curl -sI "http://127.0.0.1:5799$asset" | grep -qi 'cache-control: public, max-age=31536000, immutable'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5799/assets/missing.js)" = 404
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:5799/)" = 405
+          # The snapshot and the image routes; a width the pipeline doesn't make is refused
+          # without asking upstream, and nothing outside the snapshot is reachable.
+          curl -sf http://127.0.0.1:5799/data/sets.json | grep -q '"sets":'
+          curl -sf http://127.0.0.1:5799/data/sets/base1.json | grep -q '"cards":'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5799/img/logo/base1-999.webp)" = 404
+          test "$(curl -s -o /dev/null -w '%{http_code}' --path-as-is 'http://127.0.0.1:5799/data/../server/server.mjs')" = 404
+          # The Census forwarder is wired in; without TCGSL_CENSUS it answers locally.
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5799/_e.js)" = 200
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST --data '{}' http://127.0.0.1:5799/_e)" = 204

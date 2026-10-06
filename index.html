@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>TCGSL · TCG Setlist</title>
+    <meta name="description" content="Every English Pokémon TCG set, newest first, with its logo, release date and most valuable cards." />
+    <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f5f4f1" media="(prefers-color-scheme: light)" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="TCGSL" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="TCGSL" />
+    <meta property="og:title" content="TCGSL · TCG Setlist" />
+    <meta property="og:description" content="Every English Pokémon TCG set, newest first, with its logo, release date and most valuable cards." />
+    <meta property="og:url" content="https://tcgsl.ewolution.cloud/" />
+    <meta property="og:image" content="https://tcgsl.ewolution.cloud/og.png?v=1" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="TCGSL: every Pokémon TCG set, newest first." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preload" href="/data/sets.json" as="fetch" crossorigin vite-ignore />
+    <script src="/boot.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

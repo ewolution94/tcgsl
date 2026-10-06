@@ -1,0 +1,96 @@
+/* Folio's shared tokens and fonts (vendor/ewo, from `npm run vendor -- tcgsl` in Folio). The page
+   is monochrome; the set logos and cards bring the colour. */
+@import '../vendor/ewo/tokens/index.css';
+@import '../vendor/ewo/tokens/base.css';
+
+/* The body size is Folio's, on <body>: the root's size is what every rem token scales from. */
+html {
+  overflow-x: clip;
+}
+
+body {
+  min-height: 100dvh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+img {
+  display: block;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+.mono {
+  font-family: var(--ewo-mono);
+  font-size: var(--ewo-text-2xs);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.muted {
+  color: var(--ewo-fg-3);
+}
+
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Section headings in sheets (Settings), as in the other apps. */
+.label {
+  font-family: var(--ewo-mono);
+  font-size: var(--ewo-text-2xs);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ewo-fg-3);
+}
+
+/* Every image fades in once loaded (lib/images.ts adds .in); until then its box keeps its size,
+   and a card shows its dominant colour, so nothing shifts. Global: .in is added from script. */
+img.f {
+  opacity: 0;
+}
+
+img.f.in {
+  opacity: 1;
+  transition: opacity 240ms var(--ewo-ease);
+}
+
+/* White and silver set logos (Black Bolt, the Black & White era) vanish on paper; a hairline
+   shadow outlines them in light mode only. */
+:root[data-theme='light'] img.set-logo {
+  filter: drop-shadow(0 0 0.6px rgb(0 0 0 / 0.45));
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) img.set-logo {
+    filter: drop-shadow(0 0 0.6px rgb(0 0 0 / 0.45));
+  }
+}
+
+/* Hover never runs while the page scrolls (lib/scrolling.ts). Only for a mouse: touch has no
+   hover to protect. */
+@media (hover: hover) and (pointer: fine) {
+  :root[data-scrolling] main {
+    pointer-events: none;
+  }
+}

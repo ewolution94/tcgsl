@@ -1,0 +1,31 @@
+{
+  "name": "tcgsl",
+  "private": true,
+  "version": "0.1.0",
+  "description": "TCG Setlist: every English Pok\u00e9mon TCG set, newest first, with real set logos and cards.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "start": "node server/server.mjs",
+    "data": "node scripts/build-data.mjs",
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "@lucide/svelte": "^1.50.0",
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "@tsconfig/svelte": "^5.0.8",
+    "svelte": "^5.57.1",
+    "svelte-check": "^4.7.6",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.2"
+  }
+}

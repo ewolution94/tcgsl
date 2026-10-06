@@ -1,0 +1,42 @@
+# The TCGSL stack Portainer runs on the NAS.
+#
+# This is deliberately NOT the repo's docker-compose.yml. That one carries `build: .`,
+# which would make Portainer compile TCGSL on the NAS instead of pulling the image
+# CI already published. Paste this into Portainer's stack editor, never that one.
+#
+# Auto-updates come from the shared Watchtower stack (clinch/deploy/watchtower-stack.yml),
+# which only touches containers carrying the label below. With it, a push to `release`
+# is the entire deploy.
+
+services:
+  tcgsl:
+    image: ghcr.io/ewolution94/tcgsl:latest
+    container_name: tcgsl
+    restart: unless-stopped
+    ports:
+      - "5700:5700"
+    environment:
+      - PORT=5700
+      - TZ=Europe/Berlin
+      # Visit counts: /_e and /_e.js are forwarded to Census over the `ewolution` network.
+      # Remove the line to stop counting; the page doesn't change either way.
+      - TCGSL_CENSUS=http://census:4901
+      # Hours between data refreshes from pokemontcg.io (new sets, prices); `off` to stop.
+      # - TCGSL_REFRESH=24
+    volumes:
+      # The live data snapshot and the resized images (a few hundred MB at most).
+      - tcgsl-data:/data
+    networks:
+      # The shared network Census listens on.
+      - ewolution
+    labels:
+      # The opt-in the shared Watchtower looks for (it runs with
+      # WATCHTOWER_LABEL_ENABLE=true, so unlabelled containers are never touched).
+      - "com.centurylinklabs.watchtower.enable=true"
+
+networks:
+  ewolution:
+    external: true
+
+volumes:
+  tcgsl-data:
