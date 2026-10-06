@@ -1,10 +1,13 @@
-// Builds the data snapshot from pokemontcg.io: every English set, its cards, its three top cards,
-// and where each image lives. Used by `npm run data` (scripts/build-data.mjs) and by the server,
-// which refreshes its snapshot once a day so new sets appear on their own.
+// Builds the data snapshot: every English set from pokemontcg.io and every Japanese set from
+// TCGdex, each with its cards, its three top cards, and where each image lives. Used by
+// `npm run data` (scripts/build-data.mjs) and by the server, which refreshes its snapshot once a
+// day so new sets appear on their own.
 //
-//   <data>/sets.json        the index: every set and its three top cards
+//   <data>/sets.json        the English index: every set and its three top cards
+//   <data>/sets-ja.json     the Japanese index, the same shape (set ids end in _ja)
 //   <data>/sets/<id>.json   one set's full card list, fetched when it's opened
-//   <data>/upstream.json    where each image really lives (read by routes.mjs)
+//   <data>/upstream.json    where each image really lives (read by routes.mjs), and which Scrydex
+//                           id each Japanese set turned out to have
 //
 // All or nothing: the files are written to a fresh folder and swapped in at the end, so a
 // failed run (the API answers 500 at random) leaves the last good snapshot in place.
@@ -112,7 +115,8 @@ export async function refresh({ data, apiCache, log = () => {} }) {
   });
   if (sets.length < 100) throw new Error(`only ${sets.length} sets: refusing to replace the snapshot`);
 
-  const upstream = { sets: {}, cards: {} };
+  const previous = await readFile(path.join(data, 'upstream.json'), 'utf8').then(JSON.parse, () => null);
+  const upstream = { sets: {}, cards: {}, ja: {} };
   configure(upstream, { merge: true });
   const next = `${data}.next`;
   await rm(next, { recursive: true, force: true });
@@ -185,8 +189,11 @@ export async function refresh({ data, apiCache, log = () => {} }) {
 
   // Newest first; same-day releases keep a stable order by name.
   index.sort((a, b) => b.date.localeCompare(a.date) || a.name.localeCompare(b.name));
+  const ja = await japanese({ next, upstream, known: previous?.ja ?? {}, cached, log });
+  const built = new Date().toISOString();
   await writeFile(path.join(next, 'upstream.json'), JSON.stringify(upstream));
-  await writeFile(path.join(next, 'sets.json'), JSON.stringify({ built: new Date().toISOString(), sets: index }));
+  await writeFile(path.join(next, 'sets.json'), JSON.stringify({ built, sets: index }));
+  await writeFile(path.join(next, 'sets-ja.json'), JSON.stringify({ built, sets: ja }));
 
   // The swap: the old snapshot steps aside, the new one takes its name.
   const old = `${data}.old`;
@@ -195,6 +202,107 @@ export async function refresh({ data, apiCache, log = () => {} }) {
   await rename(next, data);
   await rm(old, { recursive: true, force: true });
   configure(upstream);
-  log(`refreshed ${index.length} sets in ${Math.round((Date.now() - started) / 1000)} s`);
-  return index.length;
+  log(`refreshed ${index.length} English and ${ja.length} Japanese sets in ${Math.round((Date.now() - started) / 1000)} s`);
+  return index.length + ja.length;
+}
+
+// --- Japanese ---------------------------------------------------------------------------------
+//
+// The sets, their dates and their cards come from TCGdex (free, no key); the images from Scrydex,
+// whose image server is public while its API is paid. Scrydex's ids aren't published without the
+// API, so each set's is found by trying the spellings TCGdex's id suggests (`M3` → `m3_ja`,
+// `CS3.5` → `cs3pt5_ja`) until card 1 comes back as a real picture; Scrydex answers an unknown id
+// with a placeholder, which images.mjs recognises. A set's id is found once and kept in
+// upstream.json; only new sets are tried on later runs.
+
+const TCGDEX = 'https://api.tcgdex.net/v2/ja';
+const SCRYDEX = 'https://images.scrydex.com/pokemon';
+
+const scrydex = (sid) => ({
+  logo: `${SCRYDEX}/${sid}-logo/logo`,
+  symbol: `${SCRYDEX}/${sid}-symbol/symbol`,
+  card: `${SCRYDEX}/${sid}-{n}/small`,
+  hd: `${SCRYDEX}/${sid}-{n}/large`,
+});
+
+/** The Scrydex ids a TCGdex id might stand for, most likely first; all valid set keys here. */
+export function candidates(id) {
+  const base = id.toLowerCase();
+  const tries = [base.replace(/-/g, ''), base.replace(/\./g, 'pt').replace(/-/g, ''), base.replace(/[.-]/g, '')];
+  return [...new Set(tries)].map((c) => `${c}_ja`).filter((c) => /^[a-z0-9]{1,16}_ja$/.test(c));
+}
+
+/** "001" → "1": TCGdex pads numbers, Scrydex doesn't. */
+const unpad = (n) => n.replace(/^0+(?=\d)/, '');
+
+async function japanese({ next, upstream, known, cached, log }) {
+  const getTcgdex = (url) => getJSON(url, 6);
+  const list = await cached('ja-sets', () => getTcgdex(`${TCGDEX}/sets`));
+  if (list.length < 50) throw new Error(`only ${list.length} Japanese sets: refusing to replace the snapshot`);
+
+  const out = await pool(list, 3, async (brief) => {
+    const d = await cached(`ja-set-${brief.id}`, () => getTcgdex(`${TCGDEX}/sets/${encodeURIComponent(brief.id)}`));
+    const date = d.releaseDate;
+    if (!date) return null;
+    const official = d.cardCount?.official ?? d.cardCount?.total ?? 0;
+    const total = d.cardCount?.total ?? official;
+    let cards = (d.cards ?? []).map((c) => ({ key: unpad(c.localId), number: c.localId, name: c.name }));
+
+    // Which Scrydex id: the one found before, else the first spelling whose card 1 is real.
+    const first = cards[0]?.key ?? '1';
+    let sid = known[brief.id];
+    if (sid === undefined) {
+      sid = null;
+      for (const c of candidates(brief.id)) {
+        upstream.sets[c] = scrydex(c);
+        if (await getImage('card', c, first, 240).catch(() => null)) {
+          sid = c;
+          break;
+        }
+        delete upstream.sets[c];
+      }
+    }
+    upstream.ja[brief.id] = sid;
+    const id = sid ?? candidates(brief.id)[0];
+    if (!id) return null;
+    if (sid) upstream.sets[sid] = scrydex(sid);
+
+    // TCGdex lists no cards for some sets; with Scrydex's pictures they can still be numbered.
+    if (!cards.length && sid && total) {
+      cards = Array.from({ length: total }, (_, i) => ({ key: String(i + 1), number: String(i + 1).padStart(3, '0'), name: '' }));
+    }
+
+    await writeFile(path.join(next, 'sets', `${id}.json`), JSON.stringify({ id, cards: cards.map((c) => [c.key, c.number, c.name, '', 0]) }));
+
+    // No prices or rarities here: the top cards are the highest-numbered, the secret rares past
+    // the printed count first, and only ones with a real picture.
+    const top = [];
+    if (sid) {
+      const ordered = [...cards].sort((a, b) => byNumber(b.number, a.number));
+      const secret = ordered.filter((c) => Number.parseInt(c.number, 10) > official);
+      let misses = 0;
+      for (const c of new Set([...secret, ...ordered])) {
+        if (top.length >= 3 || misses >= 12) break;
+        if (await getImage('card', sid, c.key, 240).catch(() => null)) top.push(c);
+        else misses++;
+      }
+      await Promise.all([getImage('logo', sid, null, 320).catch(() => null), getImage('symbol', sid, null, 64).catch(() => null)]);
+    }
+    const topOut = await Promise.all(
+      top.map(async (c) => ({
+        k: c.key,
+        name: c.name,
+        c: await getImage('card', sid, c.key, 120).then(() => dominant('card', sid, c.key, 240)).catch(() => null),
+        p: 0,
+      })),
+    );
+    // The TCGdex id is the code printed on the cards ("SV8a"); `pics` is false when Scrydex had none.
+    return { id, name: d.name, series: d.serie?.name ?? '', date, printed: official, total, code: brief.id, pics: !!sid, top: topOut };
+  });
+
+  const sets = out.filter(Boolean);
+  sets.sort((a, b) => b.date.localeCompare(a.date) || a.name.localeCompare(b.name));
+  const found = Object.values(upstream.ja).filter(Boolean).length;
+  log(`Japanese: ${sets.length} sets, ${found} with Scrydex pictures`);
+  return sets;
 }

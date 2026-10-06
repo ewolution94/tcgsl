@@ -57,6 +57,7 @@ jobs:
           # The snapshot and the image routes; a width the pipeline doesn't make is refused
           # without asking upstream, and nothing outside the snapshot is reachable.
           curl -sf http://127.0.0.1:5799/data/sets.json | grep -q '"sets":'
+          curl -sf http://127.0.0.1:5799/data/sets-ja.json | grep -q '"sets":'
           curl -sf http://127.0.0.1:5799/data/sets/base1.json | grep -q '"cards":'
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5799/img/logo/base1-999.webp)" = 404
           test "$(curl -s -o /dev/null -w '%{http_code}' --path-as-is 'http://127.0.0.1:5799/data/../server/server.mjs')" = 404

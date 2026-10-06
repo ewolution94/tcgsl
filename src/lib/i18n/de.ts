@@ -8,6 +8,9 @@ export const de: Record<MessageKey, string> = {
   'search.label': 'Sets suchen',
 
   'list.years': 'Jahre',
+  'region.label': 'Welche Sets',
+  'region.en': 'Englische Sets',
+  'region.ja': 'Japanische Sets',
   'list.sets.one': '{count} Set',
   'list.sets.other': '{count} Sets',
   'list.cards.one': '{count} Karte',
@@ -26,6 +29,7 @@ export const de: Record<MessageKey, string> = {
   'set.rarest': 'Am seltensten',
   'set.trend': 'Cardmarket-Trend',
   'set.noPrices': 'noch keine Preise',
+  'set.byNumber': 'höchste Nummern',
   'set.allCards': 'Alle Karten',
   'set.loading': 'Die Karten werden geladen …',
 
@@ -35,7 +39,7 @@ export const de: Record<MessageKey, string> = {
   'viewer.next': 'Nächste Karte',
 
   'foot.count': '{count} Sets, Stand {date}',
-  'foot.legal': 'Daten und Bilder: pokemontcg.io. Pokémon © Nintendo, Creatures, GAME FREAK. Fanprojekt, nicht mit den Rechteinhabern verbunden.',
+  'foot.legal': 'Daten und Bilder: pokemontcg.io; japanische Sets von TCGdex, Bilder von Scrydex. Pokémon © Nintendo, Creatures, GAME FREAK. Fanprojekt, nicht mit den Rechteinhabern verbunden.',
 
   'settings.title': 'Einstellungen',
   'settings.list': 'Liste',

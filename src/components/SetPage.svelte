@@ -44,10 +44,10 @@
   <button class="back" type="button" onclick={closeSet}><ChevronLeft size={16} />{t('set.back')}</button>
 
   <header class="hero">
-    <div class="logo ph-box"><ewo-skeleton class="ph ph--bar" width="100%" height="100%" radius="md"></ewo-skeleton><img class="f set-logo" use:load={{ src: img.logo(s.id, 480), eager: true }} alt="" width="260" height="104" fetchpriority="high" /></div>
+    {#if s.pics !== false}<div class="logo ph-box"><ewo-skeleton class="ph ph--bar" width="100%" height="100%" radius="md"></ewo-skeleton><img class="f set-logo" use:load={{ src: img.logo(s.id, 480), eager: true }} alt="" width="260" height="104" fetchpriority="high" /></div>{/if}
     <h1>{s.name}</h1>
     <div class="facts">
-      <span><img class="f" use:load={{ src: img.symbol(s.id), eager: true }} alt="" width="16" height="16" />{s.series}</span>
+      <span>{#if s.pics !== false}<img class="f" use:load={{ src: img.symbol(s.id), eager: true }} alt="" width="16" height="16" />{/if}{s.series}</span>
       <span>{t('set.released', { date: date(s.date) })}</span>
       <span>{tn('set.printed', s.printed)}{#if s.secret}&nbsp;{t('set.secret', { count: s.secret })}{/if}</span>
       {#if s.code}<span class="mono">{s.code}</span>{/if}
@@ -55,7 +55,7 @@
   </header>
 
   {#if s.top.length}
-    <div class="grid-h"><h2>{priced ? t('set.mostValuable') : t('set.rarest')}</h2><span class="mono muted">{priced ? t('set.trend') : t('set.noPrices')}</span></div>
+    <div class="grid-h"><h2>{priced ? t('set.mostValuable') : t('set.rarest')}</h2><span class="mono muted">{priced ? t('set.trend') : s.id.endsWith('_ja') ? t('set.byNumber') : t('set.noPrices')}</span></div>
     <ol class="cards top3">
       {#each s.top as c (c.k)}
         <li>
@@ -83,13 +83,20 @@
         </li>
       {/each}
     </ol>
+  {:else if s.pics === false}
+    <!-- No pictures for this set: the cards as a plain list, numbers and names. -->
+    <ol class="plain">
+      {#each cards as [key, number, name] (key)}
+        <li><span class="mono">{number}</span><span>{name}</span></li>
+      {/each}
+    </ol>
   {:else}
     <ol class="cards all">
       {#each cards as [key, number, name], i (key)}
         <li>
           <button type="button" onclick={() => openAt(i)}>
             <div class="thumb ph-box"><ewo-skeleton class="ph" width="100%" height="100%" radius="none"></ewo-skeleton><img class="f" use:load={{ src: img.card(s.id, key), eager: i < 6 }} alt={name} width="245" height="342" decoding="async" /></div>
-            <div class="cap"><span class="mono">{number}</span><span>{name}</span></div>
+            <div class="cap"><span class="mono">{number}</span><span>{name || '–'}</span></div>
           </button>
         </li>
       {/each}
@@ -202,6 +209,27 @@
       grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
       gap: var(--ewo-space-5) var(--ewo-space-4);
     }
+  }
+
+  .plain {
+    list-style: none;
+    margin: 0;
+    padding: 0 0 var(--ewo-space-7);
+    columns: 2 16rem;
+    column-gap: var(--ewo-space-6);
+  }
+
+  .plain li {
+    display: flex;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--ewo-line-2);
+    break-inside: avoid;
+  }
+
+  .plain .mono {
+    color: var(--ewo-fg-3);
+    padding-top: 2px;
   }
 
   .cards.all li {

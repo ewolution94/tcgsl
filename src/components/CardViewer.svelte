@@ -55,7 +55,7 @@
       <div class="glare" aria-hidden="true"></div>
     </div>
     <div class="info">
-      <b>{name}</b>
+      <b>{name || `#${number}`}</b>
       <span class="mono muted">{[`${number}/${s.printed}`, rarity, euro(price)].filter(Boolean).join(' · ')}</span>
     </div>
     <div class="nav">

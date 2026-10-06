@@ -1,7 +1,8 @@
 # TCGSL (TCG Setlist)
 
-Every English Pokémon TCG set, newest first, with real set logos, symbols and card images: one row
-per set, grouped by year, with a year scrubber on phones. Tapping a set opens its page with the most
+Every Pokémon TCG set, English and Japanese (a switch at the top of the list), newest first, with
+real set logos, symbols and card images: one row per set, grouped by year, with a year scrubber on
+phones. Tapping a set opens its page with the most
 valuable cards (Cardmarket trend prices) and the full card list. Settings (the gear, or `,`) has the
 family's theme and language switches; the UI is in English and German.
 
@@ -22,6 +23,15 @@ yet) and one file per set with its full card list, loaded when the set is opened
 a snapshot in `data/` (`npm run data` rebuilds it, reusing the API answers in `cache/api/`;
 `--refresh` fetches them again). On the NAS the server refreshes its own copy once a day, so new
 sets and prices appear without a deploy; a failed run keeps the last good snapshot.
+
+**Japanese sets.** The sets, dates and cards come from TCGdex (free, no key); the pictures from
+Scrydex's public image server (its API is paid, so it isn't used). Scrydex's ids aren't published
+without the API, so each set's is found by trying the spellings TCGdex's id suggests (`M3` →
+`m3_ja`, `CS3.5` → `cs3pt5_ja`) until card 1 is a real picture: Scrydex answers an unknown id with a
+placeholder, which `images.mjs` recognises by its bytes. Found ids are kept in `upstream.json`, so
+only new sets are tried again. 111 of 181 sets had pictures on 2026-10-06; the others are listed with
+their printed code instead of a logo, and their cards as a plain list. Japanese sets have no prices,
+so their top cards are the highest-numbered ones, secret rares first.
 
 **Images.** `server/images.mjs` fetches each upstream PNG once, resizes it to a fixed width the UI
 actually draws, encodes WebP and keeps both on disk (`cache/`). `server/routes.mjs` serves `/img/…`

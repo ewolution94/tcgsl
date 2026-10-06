@@ -1,6 +1,7 @@
 // The app's own routes, shared by the production server and Vite's dev server:
 //
-//   /data/sets.json, /data/sets/<id>.json   the snapshot from scripts/build-data.mjs
+//   /data/sets.json, /data/sets-ja.json      the English and Japanese indexes
+//   /data/sets/<id>.json                    one set's cards (Japanese ids end in _ja)
 //   /img/logo/<set>-<w>.webp                set logo      (w: 160 320 480)
 //   /img/symbol/<set>-<w>.webp              set symbol    (w: 32 64)
 //   /img/card/<set>/<key>-<w>.webp          card          (w: 120 240)
@@ -17,8 +18,8 @@ import { configure, getImage, isConfigured } from './images.mjs';
 
 export const DATA = path.resolve(process.env.TCGSL_DATA ?? fileURLToPath(new URL('../data', import.meta.url)));
 const IMG =
-  /^\/img\/(logo|symbol)\/([a-z0-9]+)-(\d+)\.webp$|^\/img\/(card|card-hd)\/([a-z0-9]+)\/([A-Za-z0-9_-]+)-(\d+)\.webp$/;
-const DATA_RE = /^\/data\/(sets\.json|sets\/[a-z0-9]+\.json)$/;
+  /^\/img\/(logo|symbol)\/([a-z0-9]+(?:_ja)?)-(\d+)\.webp$|^\/img\/(card|card-hd)\/([a-z0-9]+(?:_ja)?)\/([A-Za-z0-9_-]+)-(\d+)\.webp$/;
+const DATA_RE = /^\/data\/(sets\.json|sets-ja\.json|sets\/[a-z0-9]+(?:_ja)?\.json)$/;
 
 /** Where each image lives, from the snapshot; the server loads it at start, the dev server lazily. */
 export async function loadUpstream() {

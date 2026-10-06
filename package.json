@@ -2,7 +2,7 @@
   "name": "tcgsl",
   "private": true,
   "version": "0.1.0",
-  "description": "TCG Setlist: every English Pok\u00e9mon TCG set, newest first, with real set logos and cards.",
+  "description": "TCG Setlist: every Pokémon TCG set, English and Japanese, newest first, with real set logos and cards.",
   "type": "module",
   "license": "MIT",
   "engines": {

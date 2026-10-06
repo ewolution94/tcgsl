@@ -20,6 +20,8 @@ export interface CardSet {
   printed: number;
   total: number;
   code: string | null;
+  /** False for a Japanese set whose pictures couldn't be found (no logo, no card images). */
+  pics?: boolean;
   top: TopCard[];
 }
 
@@ -38,9 +40,13 @@ export interface Index {
 /** [key, printed number, name, rarity, price] */
 export type Card = [string, string, string, string, number];
 
-export async function loadIndex(): Promise<Index> {
-  const res = await fetch('/data/sets.json');
-  if (!res.ok) throw new Error(`sets.json: HTTP ${res.status}`);
+/** Japanese set ids end in _ja (Scrydex's), so a link alone says which list it belongs to. */
+export const regionOf = (id: string) => (id.endsWith('_ja') ? 'ja' : 'en');
+
+export async function loadIndex(region: 'en' | 'ja' = 'en'): Promise<Index> {
+  const file = region === 'ja' ? 'sets-ja.json' : 'sets.json';
+  const res = await fetch(`/data/${file}`);
+  if (!res.ok) throw new Error(`${file}: HTTP ${res.status}`);
   const { built, sets } = (await res.json()) as { built: string; sets: CardSet[] };
   const listed = sets.map((s) => ({
     ...s,

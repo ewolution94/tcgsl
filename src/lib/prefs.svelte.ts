@@ -2,9 +2,12 @@
 // mirrors before first paint).
 
 export type Language = 'system' | 'en' | 'de';
+/** Which releases the list shows: the English sets or the Japanese ones. */
+export type Region = 'en' | 'ja';
 
 interface Prefs {
   language: Language;
+  region: Region;
   /** Each row's most valuable cards beside it. */
   previews: boolean;
   /** The year rail: a column on desktop, the scrubber along the edge on a phone. */
@@ -12,7 +15,7 @@ interface Prefs {
 }
 
 const KEY = 'tcgsl:prefs';
-const DEFAULTS: Prefs = { language: 'system', previews: true, yearBar: true };
+const DEFAULTS: Prefs = { language: 'system', region: 'en', previews: true, yearBar: true };
 
 function load(): Prefs {
   try {

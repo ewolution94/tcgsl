@@ -2,7 +2,7 @@
   "id": "/",
   "name": "TCGSL · TCG Setlist",
   "short_name": "TCGSL",
-  "description": "Every English Pokémon TCG set, newest first, with its logo, release date and most valuable cards.",
+  "description": "Every Pokémon TCG set, English and Japanese, newest first, with its logo, release date and best cards.",
   "lang": "en",
   "start_url": "/",
   "scope": "/",

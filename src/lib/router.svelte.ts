@@ -5,7 +5,7 @@
 // Every change of place goes through one hook, so the app can animate it (App.svelte runs it in
 // a view transition); without a hook it simply applies.
 
-const parse = () => /^#\/set\/([a-z0-9]+)$/.exec(location.hash)?.[1] ?? null;
+const parse = () => /^#\/set\/([a-z0-9]+(?:_ja)?)$/.exec(location.hash)?.[1] ?? null;
 
 export const route = $state({ set: parse() });
 

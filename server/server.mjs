@@ -67,9 +67,11 @@ const SECURITY_HEADERS = {
 const census = createCensus({ target: process.env.TCGSL_CENSUS ?? '', site: 'tcgsl' });
 const compressed = new Map();
 
-// A fresh volume starts from the snapshot the image ships with; the first refresh updates it.
+// A fresh volume starts from the snapshot the image ships with; the first refresh updates it. A
+// volume from before the Japanese sets (no sets-ja.json) is seeded again the same way.
 const SEED = path.resolve(process.env.TCGSL_SEED ?? fileURLToPath(new URL('../data', import.meta.url)));
-if (SEED !== DATA && !(await stat(path.join(DATA, 'sets.json')).catch(() => null))) {
+const has = (file) => stat(path.join(DATA, file)).catch(() => null);
+if (SEED !== DATA && (!(await has('sets.json')) || !(await has('sets-ja.json')))) {
   await cp(SEED, DATA, { recursive: true });
   console.log(`seeded ${DATA} from ${SEED}`);
 }

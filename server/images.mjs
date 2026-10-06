@@ -3,6 +3,7 @@
 // our small WebP files, served immutable, never the 150-600 KB originals.
 import { mkdir, readFile, writeFile, rename, stat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { createHash } from 'node:crypto';
 import sharp from 'sharp';
 
 const ROOT = process.env.TCGSL_CACHE ?? new URL('../cache/', import.meta.url).pathname;
@@ -37,7 +38,8 @@ export const KINDS = {
 };
 const HOSTS = new Set(['images.pokemontcg.io', 'images.scrydex.com']);
 
-const SET_RE = /^[a-z0-9]{2,16}$/;
+// English sets are pokemontcg.io ids (`sv8`), Japanese ones Scrydex ids (`m3_ja`).
+const SET_RE = /^[a-z0-9]{1,16}(_ja)?$/;
 const NUM_RE = /^[A-Za-z0-9_-]{1,16}$/;
 
 const inflight = new Map();
@@ -85,6 +87,25 @@ async function fetchUpstream(url, tries = 5) {
   }
 }
 
+// Scrydex answers an id it doesn't know with a placeholder picture (status 200), so a guessed
+// Japanese id needs checking: the placeholder for each kind is learned once, from an id that
+// can't exist, and an upstream picture with the same bytes counts as missing.
+const PROBE = {
+  logo: 'https://images.scrydex.com/pokemon/tcgslprobe_ja-logo/logo',
+  symbol: 'https://images.scrydex.com/pokemon/tcgslprobe_ja-symbol/symbol',
+  card: 'https://images.scrydex.com/pokemon/tcgslprobe_ja-1/small',
+  'card-hd': 'https://images.scrydex.com/pokemon/tcgslprobe_ja-1/large',
+};
+const sha1 = (buf) => createHash('sha1').update(buf).digest('hex');
+const placeholders = new Map();
+function placeholder(kind) {
+  if (!placeholders.has(kind)) {
+    const probe = limited(() => fetchUpstream(PROBE[kind])).then((buf) => (buf ? sha1(buf) : null), () => null);
+    placeholders.set(kind, probe);
+  }
+  return placeholders.get(kind);
+}
+
 export function parse(kind, set, num, w) {
   const k = KINDS[kind];
   if (!k || !SET_RE.test(set) || !k.widths.includes(w)) return null;
@@ -113,6 +134,7 @@ export async function getImage(kind, set, num, w) {
       const marked = await stat(missing).catch(() => null);
       if (marked && Date.now() - marked.mtimeMs < 7 * 86_400_000) return null;
       src = await limited(() => fetchUpstream(url));
+      if (src && new URL(url).host === 'images.scrydex.com' && sha1(src) === (await placeholder(kind))) src = null;
       if (!src) {
         await atomicWrite(missing, '');
         return null;

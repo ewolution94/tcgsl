@@ -5,6 +5,9 @@ export const en = {
   'search.label': 'Search sets',
 
   'list.years': 'Years',
+  'region.label': 'Which releases',
+  'region.en': 'English sets',
+  'region.ja': 'Japanese sets',
   'list.sets.one': '{count} set',
   'list.sets.other': '{count} sets',
   'list.cards.one': '{count} card',
@@ -23,6 +26,7 @@ export const en = {
   'set.rarest': 'Rarest',
   'set.trend': 'Cardmarket trend',
   'set.noPrices': 'no prices yet',
+  'set.byNumber': 'highest numbers',
   'set.allCards': 'All cards',
   'set.loading': 'Loading the cards…',
 
@@ -32,7 +36,7 @@ export const en = {
   'viewer.next': 'Next card',
 
   'foot.count': '{count} sets, snapshot of {date}',
-  'foot.legal': 'Data and images: pokemontcg.io. Pokémon © Nintendo, Creatures, GAME FREAK. Fan project, not affiliated.',
+  'foot.legal': 'Data and images: pokemontcg.io; Japanese sets from TCGdex, images from Scrydex. Pokémon © Nintendo, Creatures, GAME FREAK. Fan project, not affiliated.',
 
   // Settings
   'settings.title': 'Settings',

@@ -6,12 +6,13 @@
   import Footer from './components/Footer.svelte';
   import Header from './components/Header.svelte';
   import ListSkeleton from './components/ListSkeleton.svelte';
+  import RegionSwitch from './components/RegionSwitch.svelte';
   import SetList from './components/SetList.svelte';
   import SetPage from './components/SetPage.svelte';
   import Settings from './components/Settings.svelte';
-  import { loadIndex, type Index } from './lib/data.ts';
+  import { loadIndex, regionOf, type Index } from './lib/data.ts';
   import { t } from './lib/i18n/index.svelte.ts';
-  import { ui } from './lib/prefs.svelte.ts';
+  import { prefs, ui, type Region } from './lib/prefs.svelte.ts';
   import { onRouteChange, route } from './lib/router.svelte.ts';
   import { transition } from './lib/transition.ts';
 
@@ -22,17 +23,38 @@
   let query = $state('');
   let search = $state<HTMLInputElement>();
 
+  // The English or the Japanese list (the switch at the top). A link to a set says which: a
+  // Japanese id ends in _ja. Each list is loaded once per visit; switching back is instant.
+  $effect.pre(() => {
+    if (route.set && regionOf(route.set) !== prefs.region) prefs.region = regionOf(route.set);
+  });
+  const loaded = new Map<Region, Index>();
+  let ticket = 0;
   function start() {
+    const region = prefs.region;
+    const mine = ++ticket;
     failed = false;
-    loadIndex().then(
-      (loaded) => (index = loaded),
+    index = loaded.get(region) ?? null;
+    if (index) return;
+    loadIndex(region).then(
+      (result) => {
+        loaded.set(region, result);
+        if (mine === ticket) index = result;
+      },
       (error) => {
         console.error(error);
-        failed = true;
+        if (mine === ticket) failed = true;
       },
     );
   }
-  start();
+  let shownRegion: Region | null = null;
+  $effect(() => {
+    const region = prefs.region;
+    if (region === shownRegion) return;
+    if (shownRegion) listScroll = 0;
+    shownRegion = region;
+    start();
+  });
 
   const open = $derived(route.set ? index?.bySet.get(route.set) : undefined);
 
@@ -74,6 +96,7 @@
 <Header bind:query bind:input={search} />
 
 <main>
+  {#if !open}<RegionSwitch />{/if}
   {#if index}
     <div hidden={!!open}>
       <SetList {index} {query} />

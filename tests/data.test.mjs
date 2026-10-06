@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { rank } from '../server/refresh.mjs';
+import { candidates, rank } from '../server/refresh.mjs';
 import { parse } from '../server/images.mjs';
 
 const card = (number, name, rarity, trend) => ({ number, name, rarity, cardmarket: trend ? { prices: { trendPrice: trend } } : undefined });
@@ -28,4 +28,13 @@ test('the image route only makes the sizes the UI draws', () => {
   assert.equal(parse('card', 'sv8', '../x', 240), null);
   assert.equal(parse('card', 'SV8', '1', 240), null);
   assert.equal(parse('poster', 'sv8', null, 320), null);
+});
+
+test('a TCGdex id gives the Scrydex ids it may stand for, valid keys only', () => {
+  assert.deepEqual(candidates('M3'), ['m3_ja']);
+  assert.deepEqual(candidates('M-P'), ['mp_ja']);
+  assert.deepEqual(candidates('CS3.5'), ['cs3pt5_ja', 'cs35_ja']);
+  assert.deepEqual(candidates('SM1+'), []);
+  assert.ok(parse('card', 'cs3pt5_ja', '12', 240));
+  assert.equal(parse('card', 'cs3.5_ja', '12', 240), null);
 });
