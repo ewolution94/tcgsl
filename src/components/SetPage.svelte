@@ -8,6 +8,7 @@
   import { loadCards, type Card, type Listed } from '../lib/data.ts';
   import { date, euro, t, tn } from '../lib/i18n/index.svelte.ts';
   import { img, load } from '../lib/images.ts';
+  import { askTilt } from '../lib/tilt.ts';
   import { closeSet } from '../lib/router.svelte.ts';
   import CardViewer from './CardViewer.svelte';
 
@@ -28,13 +29,18 @@
     );
   });
 
+  // Opening a card is the tap iOS needs before the gyro may tilt it (lib/tilt.ts).
+  const openAt = (i: number) => {
+    askTilt();
+    viewing = i;
+  };
   const openKey = (key: string) => {
     const i = cards?.findIndex((c) => c[0] === key) ?? -1;
-    if (i >= 0) viewing = i;
+    if (i >= 0) openAt(i);
   };
 </script>
 
-<div class="detail">
+<div class="detail shifts">
   <button class="back" type="button" onclick={closeSet}><ChevronLeft size={16} />{t('set.back')}</button>
 
   <header class="hero">
@@ -81,7 +87,7 @@
     <ol class="cards all">
       {#each cards as [key, number, name], i (key)}
         <li>
-          <button type="button" onclick={() => (viewing = i)}>
+          <button type="button" onclick={() => openAt(i)}>
             <div class="thumb ph-box"><ewo-skeleton class="ph" width="100%" height="100%" radius="none"></ewo-skeleton><img class="f" use:load={{ src: img.card(s.id, key), eager: i < 6 }} alt={name} width="245" height="342" decoding="async" /></div>
             <div class="cap"><span class="mono">{number}</span><span>{name}</span></div>
           </button>
@@ -128,14 +134,22 @@
     aspect-ratio: 5 / 2;
   }
 
+  /* Sized by the logo itself, so it morphs from the row's logo without stretching. */
+  .hero .logo {
+    display: flex;
+    align-items: center;
+  }
+
   .hero .logo img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    object-position: left center;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    view-transition-name: set-logo;
   }
 
   .hero h1 {
+    view-transition-name: set-name;
     font-size: var(--ewo-text-2xl);
     font-weight: 650;
     letter-spacing: -0.02em;
@@ -246,6 +260,11 @@
   .cap .mono {
     color: var(--ewo-fg-3);
     padding-top: 1px;
+  }
+
+  /* The row's best card grows into this one (lib/transition.ts). */
+  .top3 li:first-child .thumb {
+    view-transition-name: set-card;
   }
 
   .top3 .cap span {

@@ -1,7 +1,7 @@
 <!--
-  Settings, the family's way (Folio's ewo-sheet and ewo-segmented, laid out like Pinout's and
-  Prospekt's): look (theme, language) and, with a keyboard, the keys. Opens from the header's
-  gear, or with `,`.
+  Settings, the family's way (Folio's ewo-sheet, ewo-switch and ewo-segmented, laid out like
+  Pinout's and Prospekt's): the list (card previews, the year bar), look (theme, language) and,
+  with a keyboard, the keys. Opens from the header's gear, or with `,`.
 -->
 <script lang="ts">
   import { prefs, ui, type Language } from '../lib/prefs.svelte.ts';
@@ -18,6 +18,20 @@
   <span slot="heading">{t('settings.title')}</span>
 
   {#if ui.settings}
+    <section>
+      <h3 class="label">{t('settings.list')}</h3>
+      <div class="switches">
+        <ewo-switch row checked={prefs.previews} onchange={(e) => (prefs.previews = e.detail.checked)}>
+          {t('settings.previews')}
+          <span slot="hint">{t('settings.previewsHint')}</span>
+        </ewo-switch>
+        <ewo-switch row checked={prefs.yearBar} onchange={(e) => (prefs.yearBar = e.detail.checked)}>
+          {t('settings.yearBar')}
+          <span slot="hint">{t('settings.yearBarHint')}</span>
+        </ewo-switch>
+      </div>
+    </section>
+
     <section>
       <h3 class="label">{t('settings.look')}</h3>
       <div class="pair">
@@ -62,6 +76,11 @@
   section + section {
     padding-top: 1.1rem;
     border-top: 1px solid var(--ewo-line);
+  }
+
+  .switches {
+    display: grid;
+    gap: 0.9rem;
   }
 
   .pair {

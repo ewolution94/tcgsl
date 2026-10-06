@@ -33,7 +33,7 @@
   }
 </script>
 
-<footer>
+<footer class="shifts">
   <div class="row">
     <span>{t('foot.count', { count: index.sets.length, date: date(index.built.slice(0, 10)) })}</span>
     {#if weight}<span class="mono">{weight}</span>{/if}

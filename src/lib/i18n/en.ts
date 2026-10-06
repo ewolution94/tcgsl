@@ -36,6 +36,11 @@ export const en = {
 
   // Settings
   'settings.title': 'Settings',
+  'settings.list': 'List',
+  'settings.previews': 'Card previews',
+  'settings.previewsHint': 'Each set’s most valuable cards beside it.',
+  'settings.yearBar': 'Year bar',
+  'settings.yearBarHint': 'Jump to a year; on a phone, drag along the edge.',
   'settings.look': 'Look',
   'settings.theme': 'Theme',
   'settings.system': 'System',

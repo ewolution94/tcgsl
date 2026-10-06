@@ -9,6 +9,7 @@
   import type { Card, Listed } from '../lib/data.ts';
   import { euro, t } from '../lib/i18n/index.svelte.ts';
   import { img } from '../lib/images.ts';
+  import { tilt } from '../lib/tilt.ts';
 
   let { set: s, cards, at = $bindable() }: { set: Listed; cards: Card[]; at: number | null } = $props();
 
@@ -47,10 +48,11 @@
   }}
 >
   <div class="panel">
-    <div class="big" style:background-image="url('{img.card(s.id, key)}')">
+    <div class="big" use:tilt style:background-image="url('{img.card(s.id, key)}')">
       {#key key}
         <img class="f" class:in={loaded} src={img.hd(s.id, key)} alt={name} onload={() => (loaded = true)} />
       {/key}
+      <div class="glare" aria-hidden="true"></div>
     </div>
     <div class="info">
       <b>{name}</b>
@@ -74,6 +76,12 @@
     width: min(100vw, 30rem);
     max-height: 100dvh;
     overflow: visible;
+  }
+
+  /* Focused on open so Safari doesn't ring the first button; the dialog itself never shows the
+     ring (WebKit counted that focus as visible and drew a white frame round the card). */
+  .viewer:focus-visible {
+    outline: none;
   }
 
   .viewer::backdrop {
@@ -114,6 +122,19 @@
     inset: 0;
     width: 100%;
     height: 100%;
+  }
+
+  /* Tilted by lib/tilt.ts (transform only); the glare is a soft light that slides across. */
+  .big {
+    will-change: transform;
+  }
+
+  .glare {
+    position: absolute;
+    inset: -50%;
+    background: radial-gradient(circle at 50% 50%, rgb(255 255 255 / 0.42), transparent 42%);
+    opacity: 0;
+    pointer-events: none;
   }
 
   .info {

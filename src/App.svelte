@@ -12,7 +12,8 @@
   import { loadIndex, type Index } from './lib/data.ts';
   import { t } from './lib/i18n/index.svelte.ts';
   import { ui } from './lib/prefs.svelte.ts';
-  import { route } from './lib/router.svelte.ts';
+  import { onRouteChange, route } from './lib/router.svelte.ts';
+  import { transition } from './lib/transition.ts';
 
   history.scrollRestoration = 'manual';
 
@@ -34,6 +35,9 @@
   start();
 
   const open = $derived(route.set ? index?.bySet.get(route.set) : undefined);
+
+  // Every change of place runs as a view transition once the list is there (lib/transition.ts).
+  onRouteChange((apply, from, to) => (index ? transition(apply, from, to) : apply()));
 
   // Leaving the list remembers where it was; coming back returns there.
   let listScroll = 0;
@@ -80,7 +84,7 @@
       {/key}
     {/if}
   {:else if failed}
-    <div class="state">
+    <div class="state shifts">
       <p>{t('list.error')}</p>
       <button type="button" onclick={start}>{t('list.retry')}</button>
     </div>

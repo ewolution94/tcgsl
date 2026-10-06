@@ -4,6 +4,7 @@ import './lib/scrolling.ts';
 import '../vendor/ewo/elements/sheet.js';
 import '../vendor/ewo/elements/segmented.js';
 import '../vendor/ewo/elements/skeleton.js';
+import '../vendor/ewo/elements/switch.js';
 
 import { mount } from 'svelte';
 import App from './App.svelte';

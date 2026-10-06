@@ -5,10 +5,14 @@ export type Language = 'system' | 'en' | 'de';
 
 interface Prefs {
   language: Language;
+  /** Each row's most valuable cards beside it. */
+  previews: boolean;
+  /** The year rail: a column on desktop, the scrubber along the edge on a phone. */
+  yearBar: boolean;
 }
 
 const KEY = 'tcgsl:prefs';
-const DEFAULTS: Prefs = { language: 'system' };
+const DEFAULTS: Prefs = { language: 'system', previews: true, yearBar: true };
 
 function load(): Prefs {
   try {

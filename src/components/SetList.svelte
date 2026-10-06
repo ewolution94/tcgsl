@@ -1,6 +1,8 @@
 <!--
   Every set, newest first, one row each, grouped by year. The year rail is a sticky column on
-  desktop and an edge scrubber on phones (drag along it to fly through the years).
+  desktop and a scrubber along the left edge on phones (drag along it to fly through the years;
+  left, because the scroll indicator runs down the right). Settings can hide the rail and the
+  card previews.
 
   Speed: every row is in the DOM (176 is cheap), but off-screen years skip layout and paint
   (content-visibility), images load about a screen ahead (lib/images.ts), and only the first rows
@@ -10,6 +12,7 @@
   import type { Index, Listed } from '../lib/data.ts';
   import { day, t, tn } from '../lib/i18n/index.svelte.ts';
   import { img, load } from '../lib/images.ts';
+  import { prefs } from '../lib/prefs.svelte.ts';
   import { openSet } from '../lib/router.svelte.ts';
 
   let { index, query }: { index: Index; query: string } = $props();
@@ -37,7 +40,7 @@
   const order = $derived(new Map(index.sets.map((s, i) => [s.id, i])));
 
   let list: HTMLElement;
-  let rail: HTMLElement;
+  let rail = $state<HTMLElement>();
   let current = $state('');
   let bubble = $state('');
 
@@ -74,7 +77,9 @@
   let scrubbing = false;
   const desktop = () => matchMedia('(min-width: 960px)').matches;
   function scrubAt(event: PointerEvent) {
-    const a = document.elementFromPoint(innerWidth - 15, event.clientY)?.closest<HTMLElement>('a[data-y]');
+    if (!rail) return;
+    const box = rail.getBoundingClientRect();
+    const a = document.elementFromPoint(box.left + box.width / 2, event.clientY)?.closest<HTMLElement>('a[data-y]');
     if (!a) return;
     bubble = a.dataset.y!;
     jump(a.dataset.y!);
@@ -83,7 +88,7 @@
     if (desktop()) return;
     scrubbing = true;
     try {
-      rail.setPointerCapture(event.pointerId);
+      rail?.setPointerCapture(event.pointerId);
     } catch {}
     scrubAt(event);
     event.preventDefault();
@@ -100,18 +105,20 @@
   }
 </script>
 
-<div class="wrap">
-  <ol class="rail" aria-label={t('list.years')} bind:this={rail} onpointerdown={scrubStart} onpointermove={(e) => scrubbing && scrubAt(e)} onpointerup={scrubEnd} onpointercancel={scrubEnd}>
-    {#each years as { y, sets } (y)}
-      <li hidden={!sets.some(hit)}>
-        <a href="#y{y}" data-y={y} aria-current={current === y ? 'true' : undefined} onclick={(e) => { e.preventDefault(); jump(y); }}>
-          <em class="full">{y}</em><em class="short">’{y.slice(2)}</em><span>{sets.length}</span>
-        </a>
-      </li>
-    {/each}
-  </ol>
+<div class="wrap" class:no-rail={!prefs.yearBar} class:no-peek={!prefs.previews}>
+  {#if prefs.yearBar}
+    <ol class="rail shifts" aria-label={t('list.years')} bind:this={rail} onpointerdown={scrubStart} onpointermove={(e) => scrubbing && scrubAt(e)} onpointerup={scrubEnd} onpointercancel={scrubEnd}>
+      {#each years as { y, sets } (y)}
+        <li hidden={!sets.some(hit)}>
+          <a href="#y{y}" data-y={y} aria-current={current === y ? 'true' : undefined} onclick={(e) => { e.preventDefault(); jump(y); }}>
+            <em class="full">{y}</em><em class="short">’{y.slice(2)}</em><span>{sets.length}</span>
+          </a>
+        </li>
+      {/each}
+    </ol>
+  {/if}
 
-  <div class="list" bind:this={list}>
+  <div class="list shifts" bind:this={list}>
     {#each years as { y, sets } (y)}
       {@const shown = sets.filter(hit).length}
       <section class="year" id="y{y}" data-y={y} hidden={!shown} style:contain-intrinsic-size="auto {80 + sets.length * rowH}px">
@@ -121,7 +128,7 @@
             {@const i = order.get(s.id) ?? 99}
             {@const eager = i < 8}
             {@const d = day(s.date)}
-            <li class="row" hidden={!hit(s)}>
+            <li class="row" data-set-row={s.id} hidden={!hit(s)}>
               <a href="#/set/{s.id}" onclick={(e) => open(e, s.id)}>
                 <time class="d" datetime={s.date}><b>{d.day}</b><span class="mono muted">{d.month}</span></time>
                 <span class="logo ph-box"><ewo-skeleton class="ph ph--bar" width="100%" height="100%" radius="sm"></ewo-skeleton><img class="f set-logo" use:load={{ src: img.logo(s.id), eager }} alt="" width="160" height="64" decoding="async" fetchpriority={i < 4 ? 'high' : undefined} /></span>
@@ -129,12 +136,14 @@
                   <b>{s.name}</b>
                   <small><img class="f" use:load={{ src: img.symbol(s.id), eager }} alt="" width="14" height="14" decoding="async" /><span>{tn('list.cards', s.total)} · {s.series}</span></small>
                 </span>
-                <span class="peek" aria-hidden="true">
-                  {#each s.top as c, ci (c.k)}
-                    <!-- Only the front card loads eagerly: the other two are hidden on phones. -->
-                    <i class="ph-box" style:--c={c.c}><ewo-skeleton class="ph" width="100%" height="100%" radius="none"></ewo-skeleton><img class="f" use:load={{ src: img.card(s.id, c.k, 120), eager: eager && ci === 0 }} alt="" width="42" height="58" decoding="async" /></i>
-                  {/each}
-                </span>
+                {#if prefs.previews}
+                  <span class="peek" aria-hidden="true">
+                    {#each s.top as c, ci (c.k)}
+                      <!-- Only the front card loads eagerly: the other two are hidden on phones. -->
+                      <i class="ph-box" style:--c={c.c}><ewo-skeleton class="ph" width="100%" height="100%" radius="none"></ewo-skeleton><img class="f" use:load={{ src: img.card(s.id, c.k, 120), eager: eager && ci === 0 }} alt="" width="42" height="58" decoding="async" /></i>
+                    {/each}
+                  </span>
+                {/if}
               </a>
             </li>
           {/each}
@@ -144,7 +153,7 @@
     {#if !anyHit}<p class="empty">{t('list.empty')}</p>{/if}
   </div>
 </div>
-<div class="bubble" class:on={bubble} aria-hidden="true">{bubble}</div>
+{#if prefs.yearBar}<div class="bubble" class:on={bubble} aria-hidden="true">{bubble}</div>{/if}
 
 <style>
   .wrap {
@@ -157,7 +166,7 @@
   }
 
   @media (min-width: 960px) {
-    .wrap {
+    .wrap:not(.no-rail) {
       grid-template-columns: 8.5rem minmax(0, 1fr);
       gap: var(--ewo-space-6);
     }
@@ -223,10 +232,10 @@
     .rail {
       position: fixed;
       z-index: 15;
-      right: 0;
+      left: 0;
       top: calc(var(--ewo-bar-h) + 6px);
       bottom: calc(12px + env(safe-area-inset-bottom));
-      width: 30px;
+      width: 36px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -244,10 +253,12 @@
       min-height: 0;
     }
 
+    /* As large as 28 years allow in the height there is: 12.5px on a tall phone, 10px on the
+       smallest. */
     .rail a {
-      font-size: 9.5px;
+      font-size: clamp(10px, 1.5dvh, 12.5px);
       letter-spacing: 0;
-      padding: 1px 4px;
+      padding: 2px 5px;
     }
 
     .rail a span,
@@ -265,15 +276,15 @@
       border-radius: 4px;
     }
 
-    .list {
-      padding-right: 22px;
+    .wrap:not(.no-rail) .list {
+      padding-left: 26px;
     }
   }
 
   .bubble {
     position: fixed;
     z-index: 30;
-    right: 44px;
+    left: 52px;
     top: 50%;
     translate: 0 -50%;
     padding: 10px 16px;
@@ -334,6 +345,10 @@
     border-bottom: 0;
   }
 
+  .no-peek .row a {
+    grid-template-columns: 2.25rem 6.25rem minmax(0, 1fr);
+  }
+
   .d {
     display: grid;
     justify-items: start;
@@ -372,6 +387,8 @@
   }
 
   .txt b {
+    /* As wide as its text, so it morphs into the set page's title without stretching. */
+    justify-self: start;
     font-weight: 550;
     font-size: var(--ewo-text-md);
     line-height: 1.25;
@@ -436,6 +453,10 @@
       grid-template-columns: 2.5rem 8.5rem minmax(0, 1fr) auto;
       column-gap: 18px;
       min-height: 84px;
+    }
+
+    .no-peek .row a {
+      grid-template-columns: 2.5rem 8.5rem minmax(0, 1fr);
     }
 
     .logo {

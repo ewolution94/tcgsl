@@ -75,6 +75,62 @@ img.f.in {
   transition: opacity 240ms var(--ewo-ease);
 }
 
+/* A theme change (theme.svelte.ts, Pinout's way): the page blurs for a moment and the new
+   colours come in under it, while Settings (the top layer) stays sharp. Set on the page's parts,
+   not on <main>: a filter there would make it the containing block of the fixed year scrubber. */
+.shifts {
+  transition:
+    filter 220ms var(--ewo-ease),
+    opacity 220ms var(--ewo-ease);
+}
+
+.theme-shift .shifts {
+  filter: blur(14px);
+  opacity: 0.55;
+  transition-duration: 150ms;
+}
+
+/* Moving between the list and a set (lib/transition.ts): the row's logo, name and best card fly
+   into the set page's, while the rest fades out and the new page rises in under them. Only
+   snapshots move, on the compositor. */
+::view-transition-group(set-logo),
+::view-transition-group(set-name),
+::view-transition-group(set-card) {
+  animation-duration: 440ms;
+  animation-timing-function: var(--ewo-ease);
+}
+
+/* The header doesn't change: no cross-fade (WebKit's left it see-through mid-way), just the new
+   picture, solid, on top. */
+::view-transition-old(bar) {
+  display: none;
+}
+
+::view-transition-new(bar) {
+  animation: none;
+}
+
+::view-transition-old(root) {
+  animation: 180ms ease-out both vt-out;
+}
+
+::view-transition-new(root) {
+  animation: 360ms var(--ewo-ease) 60ms both vt-in;
+}
+
+@keyframes vt-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes vt-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
 /* A Folio skeleton under an image while it loads, for slow connections. Once the image is in
    (lib/images.ts adds .in, on error too) the skeleton goes: display: none also stops its sheen,
    so a loaded page never animates. The box keeps the skeleton's base colour underneath, so the

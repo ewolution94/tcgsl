@@ -38,6 +38,11 @@ export const de: Record<MessageKey, string> = {
   'foot.legal': 'Daten und Bilder: pokemontcg.io. Pokémon © Nintendo, Creatures, GAME FREAK. Fanprojekt, nicht mit den Rechteinhabern verbunden.',
 
   'settings.title': 'Einstellungen',
+  'settings.list': 'Liste',
+  'settings.previews': 'Kartenvorschau',
+  'settings.previewsHint': 'Die wertvollsten Karten jedes Sets daneben.',
+  'settings.yearBar': 'Jahresleiste',
+  'settings.yearBarHint': 'Zu einem Jahr springen; auf dem Handy am Rand entlangziehen.',
   'settings.look': 'Aussehen',
   'settings.theme': 'Design',
   'settings.system': 'System',

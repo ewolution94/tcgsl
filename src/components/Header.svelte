@@ -26,9 +26,9 @@
   }
 </script>
 
-<header class="bar" class:scrolled>
+<header class="bar shifts" class:scrolled>
   <div class="row">
-    <a class="brand" href="/" onclick={home}>TCGSL</a>
+    <a class="brand" href="/" onclick={home}><img src="/icon.svg" alt="" width="26" height="26" />TCGSL</a>
     <label class="search">
       <span class="sr">{t('search.label')}</span>
       <Search size={15} aria-hidden="true" />
@@ -50,6 +50,8 @@
 
 <style>
   .bar {
+    /* Stays put while the page beneath changes (lib/transition.ts). */
+    view-transition-name: bar;
     position: sticky;
     top: 0;
     z-index: 20;
@@ -73,6 +75,9 @@
   }
 
   .brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-weight: 650;
     letter-spacing: -0.01em;
     font-size: var(--ewo-text-lg);
