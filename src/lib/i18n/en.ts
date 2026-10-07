@@ -1,7 +1,6 @@
 // English messages. Set, series, card and rarity names come from the data and stay English.
 
 export const en = {
-  'nav.settings': 'Settings',
   'search.label': 'Search sets',
 
   'list.years': 'Years',
@@ -45,12 +44,7 @@ export const en = {
   'settings.previewsHint': 'Each set’s most valuable cards beside it.',
   'settings.yearBar': 'Year bar',
   'settings.yearBarHint': 'Jump to a year; on a phone, drag along the edge.',
-  'settings.look': 'Look',
-  'settings.theme': 'Theme',
-  'settings.system': 'System',
-  'settings.light': 'Light',
-  'settings.dark': 'Dark',
-  'settings.language': 'Language',
+  'settings.general': 'General',
   'settings.keys': 'Keyboard',
   'keys.search': 'Search sets',
   'keys.settings': 'Open settings',

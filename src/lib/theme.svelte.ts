@@ -1,11 +1,11 @@
 // Mirrors public/boot.js, which applies the saved theme before first paint; keep them in step.
+import { themeShift } from '../../vendor/ewo/elements/theme-shift.js';
 
 export type ThemePreference = 'system' | 'light' | 'dark';
 
 const KEY = 'tcgsl:theme';
 const PAGE = { light: '#f5f4f1', dark: '#09090b' };
 const media = matchMedia('(prefers-color-scheme: dark)');
-const reduced = matchMedia('(prefers-reduced-motion: reduce)');
 
 function load(): ThemePreference {
   try {
@@ -25,20 +25,14 @@ class Theme {
     media.addEventListener('change', (e) => (this.#systemDark = e.matches));
   }
 
-  #timer = 0;
-
-  /** The control updates at once; the page follows under a short blur (Pinout's, see app.css). */
+  /** The control updates at once; the page follows under Folio's veil (themeShift), unless the
+   *  pick changes nothing on screen (system → the system's own choice). */
   set(next: ThemePreference) {
     if (next === this.preference) return;
+    const before = this.resolved;
     this.preference = next;
-    if (reduced.matches) return this.#apply(next);
-    const root = document.documentElement;
-    clearTimeout(this.#timer);
-    root.classList.add('theme-shift');
-    this.#timer = window.setTimeout(() => {
-      this.#apply(next);
-      this.#timer = window.setTimeout(() => root.classList.remove('theme-shift'), 80);
-    }, 150);
+    if (this.resolved === before) this.#apply(next);
+    else themeShift(() => this.#apply(next));
   }
 
   #apply(next: ThemePreference) {

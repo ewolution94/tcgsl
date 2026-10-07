@@ -1,10 +1,9 @@
 <!--
-  The sticky header: the name, the search and the gear for Settings. Plainly sticky, with a
+  The sticky header: the name, the search, EN | JP and the settings button (Folio's, the same in every app). Plainly sticky, with a
   hairline once the page has scrolled.
 -->
 <script lang="ts">
   import Search from '@lucide/svelte/icons/search';
-  import SettingsIcon from '@lucide/svelte/icons/settings';
   import { t } from '../lib/i18n/index.svelte.ts';
   import { prefs, ui, type Region } from '../lib/prefs.svelte.ts';
   import { route, closeSet } from '../lib/router.svelte.ts';
@@ -33,7 +32,7 @@
   }
 </script>
 
-<header class="bar shifts" class:scrolled>
+<header class="bar" class:scrolled>
   <div class="row">
     <a class="brand" href="/" onclick={home}><img src="/icon.svg" alt="" width="26" height="26" /><span class="word">TCGSL</span></a>
     <label class="search">
@@ -53,9 +52,9 @@
       <option value="en">EN</option>
       <option value="ja">JP</option>
     </ewo-segmented>
-    <button class="gear" type="button" onclick={() => (ui.settings = true)} aria-label={t('nav.settings')} title={t('nav.settings')}>
-      <SettingsIcon size={19} />
-    </button>
+    <!-- Its own <button> inside takes the keys and names itself (after <html lang>); the click bubbles out. -->
+    <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+    <ewo-settings-button class="settings" onclick={() => (ui.settings = true)}></ewo-settings-button>
   </div>
 </header>
 
@@ -145,23 +144,8 @@
     pointer-events: none;
   }
 
-  .gear {
+  .settings {
     flex: none;
-    display: grid;
-    place-items: center;
-    width: 38px;
-    height: 38px;
     margin-right: -6px;
-    border: 0;
-    border-radius: var(--ewo-r-pill);
-    background: transparent;
-    color: var(--ewo-fg-2);
-  }
-
-  @media (hover: hover) and (pointer: fine) {
-    .gear:hover {
-      background: var(--ewo-fill-2);
-      color: var(--ewo-fg);
-    }
   }
 </style>

@@ -107,7 +107,7 @@
 
 <div class="wrap" class:no-rail={!prefs.yearBar} class:no-peek={!prefs.previews}>
   {#if prefs.yearBar}
-    <ol class="rail shifts" aria-label={t('list.years')} bind:this={rail} onpointerdown={scrubStart} onpointermove={(e) => scrubbing && scrubAt(e)} onpointerup={scrubEnd} onpointercancel={scrubEnd}>
+    <ol class="rail" aria-label={t('list.years')} bind:this={rail} onpointerdown={scrubStart} onpointermove={(e) => scrubbing && scrubAt(e)} onpointerup={scrubEnd} onpointercancel={scrubEnd}>
       {#each years as { y, sets } (y)}
         <li hidden={!sets.some(hit)}>
           <a href="#y{y}" data-y={y} aria-current={current === y ? 'true' : undefined} onclick={(e) => { e.preventDefault(); jump(y); }}>
@@ -118,7 +118,7 @@
     </ol>
   {/if}
 
-  <div class="list shifts" bind:this={list}>
+  <div class="list" bind:this={list}>
     {#each years as { y, sets } (y)}
       {@const shown = sets.filter(hit).length}
       <section class="year" id="y{y}" data-y={y} hidden={!shown} style:contain-intrinsic-size="auto {80 + sets.length * rowH}px">

@@ -112,7 +112,7 @@
       {/key}
     {/if}
   {:else if failed}
-    <div class="state shifts">
+    <div class="state">
       <p>{t('list.error')}</p>
       <button type="button" onclick={start}>{t('list.retry')}</button>
     </div>

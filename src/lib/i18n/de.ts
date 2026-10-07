@@ -4,7 +4,6 @@
 import type { MessageKey } from './en.ts';
 
 export const de: Record<MessageKey, string> = {
-  'nav.settings': 'Einstellungen',
   'search.label': 'Sets suchen',
 
   'list.years': 'Jahre',
@@ -47,12 +46,7 @@ export const de: Record<MessageKey, string> = {
   'settings.previewsHint': 'Die wertvollsten Karten jedes Sets daneben.',
   'settings.yearBar': 'Jahresleiste',
   'settings.yearBarHint': 'Zu einem Jahr springen; auf dem Handy am Rand entlangziehen.',
-  'settings.look': 'Aussehen',
-  'settings.theme': 'Design',
-  'settings.system': 'System',
-  'settings.light': 'Hell',
-  'settings.dark': 'Dunkel',
-  'settings.language': 'Sprache',
+  'settings.general': 'Allgemein',
   'settings.keys': 'Tastatur',
   'keys.search': 'Sets suchen',
   'keys.settings': 'Einstellungen öffnen',

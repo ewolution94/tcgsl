@@ -8,7 +8,7 @@
   import { prefs } from '../lib/prefs.svelte.ts';
 </script>
 
-<div class="wrap shifts" class:no-rail={!prefs.yearBar} class:no-peek={!prefs.previews} aria-busy="true">
+<div class="wrap" class:no-rail={!prefs.yearBar} class:no-peek={!prefs.previews} aria-busy="true">
   <p class="sr" role="status">{t('list.loading')}</p>
   <div class="rail" aria-hidden="true">
     {#each Array(10) as _, i (i)}<ewo-skeleton width="100%" height="0.75rem"></ewo-skeleton>{/each}

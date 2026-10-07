@@ -1,12 +1,12 @@
 <!--
-  Settings, the family's way (Folio's ewo-sheet, ewo-switch and ewo-segmented, laid out like
-  Pinout's and Prospekt's): the list (card previews, the year bar), look (theme, language) and,
-  with a keyboard, the keys. Opens from the header's gear, or with `,`.
+  Settings, the family's way (plans/settings-alignment.md): Folio's ewo-sheet, General first with
+  ewo-settings-basics (language, theme), then the list (card previews, the year bar) and, with a
+  keyboard, the keys. Opens from the header's settings button, or with `,`.
 -->
 <script lang="ts">
   import { prefs, ui, type Language } from '../lib/prefs.svelte.ts';
   import { theme, type ThemePreference } from '../lib/theme.svelte.ts';
-  import { t } from '../lib/i18n/index.svelte.ts';
+  import { setLanguage, t } from '../lib/i18n/index.svelte.ts';
 
   const mac = /Mac|iPhone|iPad/.test(navigator.platform);
   const touchOnly = matchMedia('(hover: none)').matches;
@@ -19,6 +19,18 @@
 
   {#if ui.settings}
     <section>
+      <h3 class="label">{t('settings.general')}</h3>
+      <!-- Folio's rows, in the same words in every app (it follows <html lang>). It applies
+           nothing itself: setLanguage and theme.set run the change under themeShift. -->
+      <ewo-settings-basics
+        language={prefs.language}
+        theme={theme.preference}
+        onlanguage-change={(e) => setLanguage(e.detail.value as Language)}
+        ontheme-change={(e) => theme.set(e.detail.value as ThemePreference)}
+      ></ewo-settings-basics>
+    </section>
+
+    <section>
       <h3 class="label">{t('settings.list')}</h3>
       <div class="switches">
         <ewo-switch row checked={prefs.previews} onchange={(e) => (prefs.previews = e.detail.checked)}>
@@ -29,27 +41,6 @@
           {t('settings.yearBar')}
           <span slot="hint">{t('settings.yearBarHint')}</span>
         </ewo-switch>
-      </div>
-    </section>
-
-    <section>
-      <h3 class="label">{t('settings.look')}</h3>
-      <div class="pair">
-        <span>{t('settings.theme')}</span>
-        <ewo-segmented size="sm" label={t('settings.theme')} value={theme.preference} onchange={(e) => theme.set(e.detail.value as ThemePreference)}>
-          <option value="system">{t('settings.system')}</option>
-          <option value="light">{t('settings.light')}</option>
-          <option value="dark">{t('settings.dark')}</option>
-        </ewo-segmented>
-      </div>
-      <div class="pair">
-        <span>{t('settings.language')}</span>
-        <!-- Language names stay in their own language, so they're findable whatever is active. -->
-        <ewo-segmented size="sm" label={t('settings.language')} value={prefs.language} onchange={(e) => (prefs.language = e.detail.value as Language)}>
-          <option value="system">{t('settings.system')}</option>
-          <option value="en">English</option>
-          <option value="de">Deutsch</option>
-        </ewo-segmented>
       </div>
     </section>
 
@@ -83,22 +74,6 @@
     gap: 0.9rem;
   }
 
-  .pair {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    font-size: 0.95rem;
-  }
-
-  .pair > span {
-    min-width: 0;
-  }
-
-  .pair ewo-segmented {
-    flex: none;
-  }
-
   dl {
     display: grid;
     gap: 0.45rem;
@@ -129,11 +104,5 @@
     font-family: var(--ewo-mono);
     font-size: 0.72rem;
     color: var(--ewo-fg-2);
-  }
-
-  @media (max-width: 420px) {
-    .pair {
-      flex-wrap: wrap;
-    }
   }
 </style>

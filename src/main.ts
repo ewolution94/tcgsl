@@ -3,6 +3,8 @@ import './lib/scrolling.ts';
 // Folio's shared elements (vendor/ewo, from `npm run vendor -- tcgsl` in Folio); each defines itself once.
 import '../vendor/ewo/elements/sheet.js';
 import '../vendor/ewo/elements/segmented.js';
+import '../vendor/ewo/elements/settings-basics.js';
+import '../vendor/ewo/elements/settings-button.js';
 import '../vendor/ewo/elements/skeleton.js';
 import '../vendor/ewo/elements/switch.js';
 

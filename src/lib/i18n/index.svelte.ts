@@ -3,7 +3,8 @@
  * wrappers that read it, so a template using t() updates when it changes.
  */
 
-import { prefs } from '../prefs.svelte.ts';
+import { themeShift } from '../../../vendor/ewo/elements/theme-shift.js';
+import { prefs, type Language } from '../prefs.svelte.ts';
 import { dayMonth, longDate, plural, translate, type Locale, type MessageKey, type PluralBase } from './core.ts';
 
 export { euro } from './core.ts';
@@ -23,6 +24,14 @@ addEventListener('languagechange', () => (system = detect()));
 
 export function locale(): Locale {
   return prefs.language === 'system' ? system : prefs.language;
+}
+
+/** A pick in Settings: the page follows under Folio's veil (themeShift), unless the language on
+ *  screen stays the same (system → the browser's own language). */
+export function setLanguage(next: Language) {
+  if (next === prefs.language) return;
+  if ((next === 'system' ? system : next) === locale()) prefs.language = next;
+  else themeShift(() => (prefs.language = next));
 }
 
 $effect.root(() => {

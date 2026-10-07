@@ -40,7 +40,7 @@
   };
 </script>
 
-<div class="detail shifts">
+<div class="detail">
   <button class="back" type="button" onclick={closeSet}><ChevronLeft size={16} />{t('set.back')}</button>
 
   <header class="hero">

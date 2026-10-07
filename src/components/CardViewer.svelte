@@ -32,15 +32,30 @@
 
   const index = () => at ?? 0;
   const step = (d: number) => (at = (index() + d + cards.length) % cards.length);
-  const close = () => (at = null);
+
+  // Out the way it came in: the card and the backdrop fade (260 ms, as every sheet's backdrop
+  // in the family), then the viewer unmounts.
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  let closing = $state(false);
+  function close() {
+    if (closing) return;
+    if (reduced.matches) return void (at = null);
+    closing = true;
+    setTimeout(() => (at = null), 260);
+  }
 </script>
 
 <dialog
   class="viewer"
   bind:this={dialog}
   tabindex="-1"
+  class:closing
   aria-label={t('viewer.label')}
-  onclose={close}
+  oncancel={(e) => {
+    e.preventDefault();
+    close();
+  }}
+  onclose={() => (at = null)}
   onclick={(e) => e.target === dialog && close()}
   onkeydown={(e) => {
     if (e.key === 'ArrowLeft') step(-1);
@@ -84,18 +99,36 @@
     outline: none;
   }
 
+  /* Every sheet's backdrop in the family (Cantina's, plans/settings-alignment.md). */
   .viewer::backdrop {
-    background: light-dark(rgb(245 244 241 / 0.94), rgb(9 9 11 / 0.94));
+    background: oklch(0.1 0.01 270 / 0.5);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    animation: v-fade 300ms var(--ewo-ease);
+  }
+
+  .viewer.closing::backdrop {
+    animation: v-fade 260ms var(--ewo-ease) reverse forwards;
   }
 
   .viewer[open] {
     animation: v-in 220ms var(--ewo-ease);
   }
 
+  .viewer.closing {
+    animation: v-in 260ms var(--ewo-ease) reverse forwards;
+  }
+
   @keyframes v-in {
     from {
       opacity: 0;
       transform: scale(0.97);
+    }
+  }
+
+  @keyframes v-fade {
+    from {
+      opacity: 0;
     }
   }
 
@@ -137,8 +170,13 @@
     pointer-events: none;
   }
 
+  /* On its own surface: the backdrop lets the page show through, too busy to read text on. */
   .info {
     text-align: center;
+    padding: var(--ewo-space-2) var(--ewo-space-4);
+    border: 1px solid var(--ewo-line);
+    border-radius: var(--ewo-r-md);
+    background: var(--ewo-bg-raised);
   }
 
   .info b {
