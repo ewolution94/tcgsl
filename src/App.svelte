@@ -59,6 +59,11 @@
 
   const open = $derived(route.set ? index?.bySet.get(route.set) : undefined);
 
+  // The splash screen (public/boot.js) fades once the first list is on the page, or has failed.
+  $effect(() => {
+    if (index || failed) dispatchEvent(new Event('tcgsl:ready'));
+  });
+
   // Every change of place runs as a view transition once the list is there (lib/transition.ts).
   onRouteChange((apply, from, to) => (index ? transition(apply, from, to) : apply()));
 

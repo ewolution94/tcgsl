@@ -40,7 +40,10 @@ async function precacheShell() {
   await shell.put(SHELL_URL, response.clone());
 
   const html = await response.text();
-  const named = [...html.matchAll(/["'(](\/[A-Za-z0-9._/-]+\.(?:js|css|svg|png|webmanifest))["')]/g)].map((m) => m[1]);
+  // Not the iOS launch images: iOS fetches the one it needs itself, and there are 22 of them.
+  const named = [...html.matchAll(/["'(](\/[A-Za-z0-9._/-]+\.(?:js|css|svg|png|webmanifest))["')]/g)]
+    .map((m) => m[1])
+    .filter((href) => !href.startsWith('/splash/'));
   const assets = await caches.open(ASSETS);
   await Promise.all(
     [...new Set(named)].map(async (href) => {

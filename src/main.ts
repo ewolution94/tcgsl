@@ -10,8 +10,22 @@ import { mount } from 'svelte';
 import App from './App.svelte';
 import { loadCensus } from './lib/census.ts';
 
-mount(App, { target: document.getElementById('app')! });
-loadCensus();
+function start() {
+  mount(App, { target: document.getElementById('app')! });
+  loadCensus();
+}
+
+// Installed, the app opens on the splash screen (public/boot.js). iOS fades its launch image into
+// the page as soon as the page has laid out, so the splash has to be on screen before the app's
+// first render takes the main thread, or the fade goes through a blank white web view.
+if (document.documentElement.classList.contains('splash')) {
+  let started = false;
+  const once = () => !started && (started = true, start());
+  requestAnimationFrame(() => setTimeout(once));
+  setTimeout(once, 100);
+} else {
+  start();
+}
 
 /**
  * The offline shell (see public/sw.js). Production only: a worker in front of the dev server

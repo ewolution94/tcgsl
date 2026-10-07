@@ -64,6 +64,15 @@ real rows, so nothing jumps), a set's card grid, and every logo and card image, 
 softened colour under the sheen. A skeleton goes the moment its image is in (`display: none` in
 `app.css`, which also stops the sheen), so a loaded page never animates.
 
+**Splash screen.** Installed to a home screen, TCGSL opens like an app. iOS shows a launch image
+first (`public/splash`: one per iPhone size, light and dark, the mark on the page colour), then the
+page's own splash (`#splash` in `index.html`, run by `public/boot.js`) takes over from the same
+picture: the back cards fan, a glint crosses, and it fades into the list as soon as that is in,
+1.5 s at most. `?splash` shows it in a browser tab. `npm run splash` renders the launch images from
+`brand/mark.svg` and writes their `<link>` tags into `index.html`; the service worker leaves them
+out of its precache. iOS takes the launch image when the app is added to the home screen, so an
+older install shows it only once added again, in the light or dark the phone had then.
+
 ## Deploy (NAS)
 
 CI on `release` (typecheck, tests, build, a smoke test of the production server) publishes
@@ -86,7 +95,7 @@ stack from `deploy/portainer-stack.yml` (port 5700, the `tcgsl-data` volume, Cen
 ```
 server/        server.mjs (static, headers, /healthz), routes.mjs (/data, /img), images.mjs,
                refresh.mjs (the snapshot), census.mjs (the visit counter's forwarder)
-scripts/       build-data.mjs (the snapshot in data/)
+scripts/       build-data.mjs (the snapshot in data/), splash.mjs (the iOS launch images)
 tests/         unit tests (ranking, the image guard, the Census forwarder)
 deploy/        portainer-stack.yml
 src/           App.svelte, components/, lib/ (data, images, router, prefs, theme, i18n)
