@@ -10,6 +10,7 @@
   import { euro, t } from '../lib/i18n/index.svelte.ts';
   import { img } from '../lib/images.ts';
   import { tilt } from '../lib/tilt.ts';
+  import { lockScroll } from '../../vendor/ewo/elements/scroll-lock.js';
 
   let { set: s, cards, at = $bindable() }: { set: Listed; cards: Card[]; at: number | null } = $props();
 
@@ -22,6 +23,8 @@
     dialog.showModal();
     // Safari rings the first button otherwise (learnings/ios-and-webkit.md).
     dialog.focus();
+    // The set page behind stays put until the viewer unmounts (Folio's lock, as in every sheet).
+    return lockScroll();
   });
 
   $effect(() => {
