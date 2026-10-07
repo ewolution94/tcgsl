@@ -11,13 +11,23 @@
   const mac = /Mac|iPhone|iPad/.test(navigator.platform);
   const touchOnly = matchMedia('(hover: none)').matches;
 
-  const close = () => (ui.settings = false);
+  // The content stays until the sheet's `close`, which fires after its exit animation: dropping it
+  // with the flag left only the header sliding out, a black box at phone width.
+  let shown = $state(false);
+  $effect(() => {
+    if (ui.settings) shown = true;
+  });
+
+  function closed() {
+    shown = false;
+    ui.settings = false;
+  }
 </script>
 
-<ewo-sheet open={ui.settings} label={t('settings.title')} oncancel={close} onclose={close}>
+<ewo-sheet open={ui.settings} label={t('settings.title')} oncancel={() => (ui.settings = false)} onclose={closed}>
   <span slot="heading">{t('settings.title')}</span>
 
-  {#if ui.settings}
+  {#if shown}
     <section>
       <h3 class="label">{t('settings.general')}</h3>
       <!-- Folio's rows, in the same words in every app (it follows <html lang>). It applies
