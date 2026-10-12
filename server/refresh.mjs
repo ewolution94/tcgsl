@@ -94,8 +94,13 @@ async function getJSON(url, tries = 10, signal) {
 /** Waits `ms`, or less if `signal` stops the refresh first. */
 function pause(ms, signal) {
   return new Promise((resolve) => {
-    const timer = setTimeout(resolve, ms);
-    signal?.addEventListener('abort', () => (clearTimeout(timer), resolve()), { once: true });
+    const done = () => {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', done);
+      resolve();
+    };
+    const timer = setTimeout(done, ms);
+    signal?.addEventListener('abort', done, { once: true });
   });
 }
 
@@ -366,18 +371,22 @@ async function japanese({ next, upstream, known, cached, log, signal }) {
     // Which Scrydex id: the one found before, else the first spelling whose card 1 is real.
     const first = cards[0]?.key ?? '1';
     let sid = known[brief.id];
+    // A spelling whose card 1 failed (a timeout, a placeholder probe that failed) proves nothing:
+    // if none was found and any failed, the set stays unknown and the next run guesses again,
+    // instead of keeping it pictureless for good. (undefined: JSON.stringify leaves it out.)
+    let unsure = false;
     if (sid === undefined) {
       sid = null;
       for (const c of candidates(brief.id)) {
         upstream.sets[c] = scrydex(c);
-        if (await getImage('card', c, first, 240).catch(() => null)) {
+        if (await getImage('card', c, first, 240).then(Boolean, () => ((unsure = true), false))) {
           sid = c;
           break;
         }
         delete upstream.sets[c];
       }
     }
-    upstream.ja[brief.id] = sid;
+    upstream.ja[brief.id] = sid ?? (unsure ? undefined : null);
     const id = sid ?? candidates(brief.id)[0];
     if (!id) return null;
     if (sid) upstream.sets[sid] = scrydex(sid);
