@@ -14,10 +14,13 @@
 
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { withDeadline } from './deadline.mjs';
 import { configure, dominant, getImage } from './images.mjs';
 
 const API = 'https://api.pokemontcg.io/v2';
 const UA = 'tcgsl (ewolution.cloud)';
+/** How long one upstream request may take, headers and body. */
+const TIMEOUT = Number(process.env.TCGSL_UPSTREAM_TIMEOUT_MS) || 30_000;
 
 // The two places card images live; a set uses whichever fits most of its cards.
 const TEMPLATES = [
@@ -60,17 +63,40 @@ export function rank(cards) {
   );
 }
 
-async function getJSON(url, tries = 10) {
+/**
+ * One API answer. Each attempt, headers and body, runs on our own clock (deadline.mjs) instead of
+ * trusting fetch to give up; a refresh that has been stopped (`signal`) asks nothing more.
+ * @param {string} url
+ * @param {number} [tries]
+ * @param {AbortSignal} [signal]
+ */
+async function getJSON(url, tries = 10, signal) {
   for (let i = 0; ; i++) {
+    signal?.throwIfAborted();
     try {
-      const res = await fetch(url, { headers: { 'user-agent': UA } });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json();
+      return await withDeadline(
+        TIMEOUT,
+        async (s) => {
+          const res = await fetch(url, { headers: { 'user-agent': UA }, signal: s });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return await res.json();
+        },
+        signal,
+      );
     } catch (err) {
+      if (signal?.aborted) throw signal.reason;
       if (i >= tries - 1) throw new Error(`${url}: ${err.message}`, { cause: err });
-      await new Promise((r) => setTimeout(r, Math.min(8000, 500 * 2 ** i)));
+      await pause(Math.min(8000, 500 * 2 ** i), signal);
     }
   }
+}
+
+/** Waits `ms`, or less if `signal` stops the refresh first. */
+function pause(ms, signal) {
+  return new Promise((resolve) => {
+    const timer = setTimeout(resolve, ms);
+    signal?.addEventListener('abort', () => (clearTimeout(timer), resolve()), { once: true });
+  });
 }
 
 async function pool(items, size, fn) {
@@ -88,11 +114,14 @@ async function pool(items, size, fn) {
 }
 
 /**
- * @param {{ data: string, apiCache?: string, log?: (msg: string) => void }} options
+ * @param {{ data: string, apiCache?: string, log?: (msg: string) => void, signal?: AbortSignal }} options
  *   data      the snapshot folder to replace
  *   apiCache  keep raw API answers here and reuse them (local runs); omit to always fetch
+ *   signal    stops the refresh (the server's deadline for a whole run): no request after it, and
+ *             nothing written into the next snapshot, so a stopped run can't mix into the one
+ *             after it. Image downloads take no signal; the writes after them check it.
  */
-export async function refresh({ data, apiCache, log = () => {} }) {
+export async function refresh({ data, apiCache, log = () => {}, signal }) {
   const started = Date.now();
   const cached = async (name, fn) => {
     if (!apiCache) return fn();
@@ -109,7 +138,7 @@ export async function refresh({ data, apiCache, log = () => {} }) {
   const fields = 'id,name,series,printedTotal,total,releaseDate,ptcgoCode,images';
   const sets = await cached('sets', async () => {
     const pages = await Promise.all(
-      [1, 2, 3].map((p) => getJSON(`${API}/sets?orderBy=-releaseDate&pageSize=100&page=${p}&select=${fields}`)),
+      [1, 2, 3].map((p) => getJSON(`${API}/sets?orderBy=-releaseDate&pageSize=100&page=${p}&select=${fields}`, 10, signal)),
     );
     return pages.flatMap((p) => p.data);
   });
@@ -119,6 +148,7 @@ export async function refresh({ data, apiCache, log = () => {} }) {
   const upstream = { sets: {}, cards: {}, ja: {} };
   configure(upstream, { merge: true });
   const next = `${data}.next`;
+  signal?.throwIfAborted();
   await rm(next, { recursive: true, force: true });
   await mkdir(path.join(next, 'sets'), { recursive: true });
 
@@ -127,7 +157,7 @@ export async function refresh({ data, apiCache, log = () => {} }) {
       const out = [];
       for (let page = 1; ; page++) {
         const q = `${API}/cards?q=set.id:${s.id}&select=id,name,number,rarity,images,cardmarket&pageSize=250&page=${page}`;
-        const res = await getJSON(q);
+        const res = await getJSON(q, 10, signal);
         out.push(...res.data);
         if (out.length >= res.totalCount || res.data.length === 0) break;
       }
@@ -159,6 +189,7 @@ export async function refresh({ data, apiCache, log = () => {} }) {
     }
     for (const c of ranked) if (top.length < 3 && !top.includes(c) && (await hasImage(c))) top.push(c);
 
+    signal?.throwIfAborted();
     await writeFile(
       path.join(next, 'sets', `${s.id}.json`),
       JSON.stringify({ id: s.id, cards: cards.map((c) => [c.key, c.number, c.name, c.rarity ?? '', round(price(c))]) }),
@@ -189,13 +220,17 @@ export async function refresh({ data, apiCache, log = () => {} }) {
 
   // Newest first; same-day releases keep a stable order by name.
   index.sort((a, b) => b.date.localeCompare(a.date) || a.name.localeCompare(b.name));
-  const ja = await japanese({ next, upstream, known: previous?.ja ?? {}, cached, log });
+  const ja = await japanese({ next, upstream, known: previous?.ja ?? {}, cached, log, signal });
   const built = new Date().toISOString();
+  signal?.throwIfAborted();
   await writeFile(path.join(next, 'upstream.json'), JSON.stringify(upstream));
   await writeFile(path.join(next, 'sets.json'), JSON.stringify({ built, sets: index }));
   await writeFile(path.join(next, 'sets-ja.json'), JSON.stringify({ built, sets: ja }));
 
-  // The swap: the old snapshot steps aside, the new one takes its name.
+  // The swap: the old snapshot steps aside, the new one takes its name. A stopped run ends here
+  // at the latest; once the swap has begun it runs to the end, since stopping between the two
+  // renames would leave no snapshot at all.
+  signal?.throwIfAborted();
   const old = `${data}.old`;
   await rm(old, { recursive: true, force: true });
   await rename(data, old).catch(() => {});
@@ -295,17 +330,24 @@ export function candidates(id) {
 /** "001" → "1": TCGdex pads numbers, Scrydex doesn't. */
 const unpad = (n) => n.replace(/^0+(?=\d)/, '');
 
-async function japanese({ next, upstream, known, cached, log }) {
-  const getTcgdex = (url) => getJSON(url, 6);
+async function japanese({ next, upstream, known, cached, log, signal }) {
+  const getTcgdex = (url) => getJSON(url, 6, signal);
   const all = await cached('ja-sets', () => getTcgdex(`${TCGDEX}/sets`));
   // TCGdex lists the Sun & Moon "plus" sets twice, as SM1+ and SM1p: keep the p spelling.
   const plain = (id) => id.toLowerCase().replace(/\+/g, 'p');
   const list = all.filter((b) => !(b.id.includes('+') && all.some((o) => o !== b && !o.id.includes('+') && plain(o.id) === plain(b.id))));
   // English names are a nicety: if Limitless can't be read, the Japanese names stay.
   const english = await cached('ja-limitless', async () => {
-    const res = await fetch(LIMITLESS, { headers: { 'user-agent': UA } });
-    if (!res.ok) throw new Error(`limitless: HTTP ${res.status}`);
-    return parseLimitless(await res.text());
+    const html = await withDeadline(
+      TIMEOUT,
+      async (s) => {
+        const res = await fetch(LIMITLESS, { headers: { 'user-agent': UA }, signal: s });
+        if (!res.ok) throw new Error(`limitless: HTTP ${res.status}`);
+        return res.text();
+      },
+      signal,
+    );
+    return parseLimitless(html);
   }).catch((err) => {
     log(`Limitless unreadable (${err.message}); Japanese names only`);
     return {};
@@ -354,6 +396,7 @@ async function japanese({ next, upstream, known, cached, log }) {
       cards = Array.from({ length: total }, (_, i) => ({ key: String(i + 1), number: String(i + 1).padStart(3, '0'), name: '', image: undefined }));
     }
 
+    signal?.throwIfAborted();
     await writeFile(path.join(next, 'sets', `${id}.json`), JSON.stringify({ id, cards: cards.map((c) => [c.key, c.number, c.name, '', 0]) }));
 
     // No prices or rarities here: the top cards are the highest-numbered, the secret rares past

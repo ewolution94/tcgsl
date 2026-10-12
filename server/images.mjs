@@ -5,8 +5,11 @@ import { mkdir, readFile, writeFile, rename, stat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { createHash } from 'node:crypto';
 import sharp from 'sharp';
+import { withDeadline } from './deadline.mjs';
 
 const ROOT = process.env.TCGSL_CACHE ?? new URL('../cache/', import.meta.url).pathname;
+/** How long one download may take, headers and body. */
+const TIMEOUT = Number(process.env.TCGSL_UPSTREAM_TIMEOUT_MS) || 30_000;
 
 // Where each image really lives, from data/upstream.json (the build writes
 // it): most sets on images.pokemontcg.io, the newest on images.scrydex.com,
@@ -73,13 +76,19 @@ async function atomicWrite(path, buf) {
   await rename(tmp, path);
 }
 
+// Each attempt on our own clock (deadline.mjs): a download that never settles would keep one of the
+// six slots above for good, and after six of them no image would be fetched again. A timeout
+// throws like any failure, never null: null means "upstream has none" and marks the image missing
+// for a week.
 async function fetchUpstream(url, tries = 5) {
   for (let i = 0; ; i++) {
     try {
-      const res = await fetch(url, { headers: { 'user-agent': 'tcgsl (ewolution.cloud)' } });
-      if (res.status === 404) return null;
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return Buffer.from(await res.arrayBuffer());
+      return await withDeadline(TIMEOUT, async (signal) => {
+        const res = await fetch(url, { headers: { 'user-agent': 'tcgsl (ewolution.cloud)' }, signal });
+        if (res.status === 404) return null;
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return Buffer.from(await res.arrayBuffer());
+      });
     } catch (err) {
       if (i >= tries - 1) throw new Error(`${url}: ${err.message}`, { cause: err });
       await new Promise((r) => setTimeout(r, 400 * 2 ** i));
@@ -97,11 +106,17 @@ const PROBE = {
   'card-hd': 'https://images.scrydex.com/pokemon/tcgslprobe_ja-1/large',
 };
 const sha1 = (buf) => createHash('sha1').update(buf).digest('hex');
+// A probe that failed isn't kept: an unknown placeholder would let every placeholder through as a
+// real picture, into the disk cache for good. The image that asked fails instead, and the next one
+// probes again.
 const placeholders = new Map();
 function placeholder(kind) {
   if (!placeholders.has(kind)) {
-    const probe = limited(() => fetchUpstream(PROBE[kind])).then((buf) => (buf ? sha1(buf) : null), () => null);
+    const probe = limited(() => fetchUpstream(PROBE[kind])).then((buf) => (buf ? sha1(buf) : null));
     placeholders.set(kind, probe);
+    probe.catch(() => {
+      if (placeholders.get(kind) === probe) placeholders.delete(kind);
+    });
   }
   return placeholders.get(kind);
 }

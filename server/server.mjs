@@ -12,6 +12,7 @@
 //   TCGSL_CACHE         resized images (default <project>/cache)
 //   TCGSL_ORIGINALS     `off` keeps only the resized images, not the upstream PNGs
 //   TCGSL_REFRESH       hours between data refreshes (default 24); `off` never refreshes
+//   TCGSL_UPSTREAM_TIMEOUT_MS  how long one upstream request may take (default 30000)
 //   TCGSL_CENSUS        Census's ingest origin for visit counts, e.g. http://census:4901 (default: off)
 
 import http from 'node:http';
@@ -21,6 +22,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { createCensus } from './census.mjs';
+import { withDeadline } from './deadline.mjs';
 import { refresh } from './refresh.mjs';
 import { DATA, loadUpstream, routes } from './routes.mjs';
 
@@ -87,17 +89,32 @@ await loadUpstream();
 // The daily refresh: new sets and prices. A failed run keeps the last good snapshot and tries
 // again an hour later.
 const every = process.env.TCGSL_REFRESH === 'off' ? 0 : Number(process.env.TCGSL_REFRESH ?? 24) * 3_600_000;
+// Every request has its own deadline (refresh.mjs, images.mjs). This one is for a run as a whole,
+// well above a healthy run on the NAS (about 9 minutes, 2026-10-10/11): the next run is scheduled
+// only once this one settles, so on 2026-10-09's terms (Clinch's poll that never did) nothing
+// would ever refresh again. Past it the run is stopped and counts as failed.
+const RUN_DEADLINE = 60 * 60_000;
+/** When the last run finished, well or badly; before the first, when the server started. */
+let lastRunAt = Date.now();
 function schedule(delay) {
   setTimeout(async () => {
     try {
-      await refresh({ data: DATA, log: (msg) => console.log(msg) });
+      await withDeadline(RUN_DEADLINE, (signal) => refresh({ data: DATA, log: (msg) => console.log(msg), signal }));
       schedule(every);
     } catch (err) {
       console.error('refresh failed:', err.message, err.cause?.message ?? '');
       schedule(Math.min(every, 3_600_000));
+    } finally {
+      lastRunAt = Date.now();
     }
   }, delay).unref();
 }
+/**
+ * Whether the refresh loop still goes round: a run has finished, well or badly, within the longest
+ * gap a working loop leaves. Not the same as fresh data: pokemontcg.io answering 500 for hours is
+ * a failing run every hour, which is the loop working. `/healthz` answers 503 when it's false.
+ */
+const refreshing = () => !every || Date.now() - lastRunAt < every + RUN_DEADLINE + 3_600_000;
 if (every) {
   const built = Date.parse(JSON.parse(await readFile(path.join(DATA, 'sets.json'), 'utf8')).built);
   const age = Date.now() - built;
@@ -158,7 +175,12 @@ async function serveStatic(req, res) {
 }
 
 const server = http.createServer(async (req, res) => {
-  if (req.url === '/healthz') return res.writeHead(200, { 'content-type': 'text/plain' }).end('ok');
+  // A refresh loop that has stopped serves a snapshot that looks current and isn't, and nothing on
+  // the page can tell. 503 is what Docker and Pulse can tell (neither restarts anything).
+  if (req.url === '/healthz') {
+    const ok = refreshing();
+    return res.writeHead(ok ? 200 : 503, { 'content-type': 'text/plain' }).end(ok ? 'ok' : 'refresh stopped');
+  }
 
   for (const [name, value] of Object.entries(SECURITY_HEADERS)) res.setHeader(name, value);
 
