@@ -27,6 +27,7 @@ services:
       # Visit counts: /_e and /_e.js are forwarded to Census over the `ewolution` network.
       # Remove the line to stop counting; the page doesn't change either way.
       - TCGSL_CENSUS=http://census:4901
+      - DASHBOARD_URL=http://dashboard:8081
       # Hours between data refreshes from pokemontcg.io (new sets, prices); `off` to stop.
       # - TCGSL_REFRESH=24
     volumes:

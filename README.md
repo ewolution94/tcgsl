@@ -89,6 +89,7 @@ stack from `deploy/portainer-stack.yml` (port 5700, the `tcgsl-data` volume, Cen
 | `TCGSL_ORIGINALS` | kept (`off` in the image) | `off` keeps only the resized images |
 | `TCGSL_REFRESH` | `24` | hours between data refreshes; `off` never refreshes |
 | `TCGSL_CENSUS` | off | Census's ingest origin, e.g. `http://census:4901` |
+| `DASHBOARD_URL` | off | Dashboard's apps' port, `http://dashboard:8081` on the NAS: the language and theme a device that hasn't picked starts from (the family's, or TCGSL's own). Off or down: the built-in ones, as before |
 
 ## Layout
 

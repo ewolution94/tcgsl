@@ -1,6 +1,7 @@
 // Production server: the built app from ../dist, the data snapshot and the image cache
-// (routes.mjs), the daily data refresh (refresh.mjs) and the Census forwarder. One dependency,
-// sharp, for the images.
+// (routes.mjs), the daily data refresh (refresh.mjs), the Census forwarder, and Dashboard's
+// defaults in the page (Folio's config-server; the manifest is public/ewo.config.json). One
+// dependency, sharp, for the images.
 //
 //   PORT=8080 HOST=0.0.0.0 node server/server.mjs
 //
@@ -14,6 +15,8 @@
 //   TCGSL_REFRESH       hours between data refreshes (default 24); `off` never refreshes
 //   TCGSL_UPSTREAM_TIMEOUT_MS  how long one upstream request may take (default 30000)
 //   TCGSL_CENSUS        Census's ingest origin for visit counts, e.g. http://census:4901 (default: off)
+//   DASHBOARD_URL       Dashboard's apps' port for the family's defaults, e.g. http://dashboard:8081
+//                       (default: off, so the built-in ones: today's)
 
 import http from 'node:http';
 import { createReadStream } from 'node:fs';
@@ -25,6 +28,7 @@ import { createCensus } from './census.mjs';
 import { withDeadline } from './deadline.mjs';
 import { refresh } from './refresh.mjs';
 import { DATA, loadUpstream, routes } from './routes.mjs';
+import { createConfig } from '../vendor/ewo/elements/config-server.js';
 
 const portFlag = process.argv.indexOf('--port');
 const PORT = Number(portFlag > -1 ? process.argv[portFlag + 1] : (process.env.PORT ?? 8080));
@@ -68,6 +72,30 @@ const SECURITY_HEADERS = {
 
 const census = createCensus({ target: process.env.TCGSL_CENSUS ?? '', site: 'tcgsl' });
 const compressed = new Map();
+
+// Dashboard's values for this app (the language and theme a device that hasn't picked starts
+// from), checked against the manifest. Until Dashboard answers, and whenever it's down, the
+// built-in ones: the page as it ships. Never part of /healthz.
+const INDEX = path.join(DIST, 'index.html');
+const config = createConfig({
+  manifest: JSON.parse(await readFile(path.join(DIST, 'ewo.config.json'), 'utf8')),
+  url: process.env.DASHBOARD_URL ?? '',
+});
+config.start();
+
+// The page carries the values, so its bodies are kept for the current values only.
+let pages = { etag: '', bodies: new Map() };
+async function page(entry, encoding) {
+  if (pages.etag !== config.etag()) pages = { etag: config.etag(), bodies: new Map() };
+  const key = `${entry.mtime.getTime()}:${encoding ?? 'identity'}`;
+  let body = pages.bodies.get(key);
+  if (!body) {
+    const raw = Buffer.from(config.inject(await readFile(entry.file, 'utf8')));
+    body = encoding === 'br' ? zlib.brotliCompressSync(raw) : encoding === 'gzip' ? zlib.gzipSync(raw) : raw;
+    pages.bodies.set(key, body);
+  }
+  return body;
+}
 
 // The volume keeps whichever snapshot is newer: the one the image ships with (a release brings
 // its data along at once) or the volume's own (a daily refresh is never set back). A fresh volume,
@@ -156,6 +184,15 @@ async function serveStatic(req, res) {
 
   const accept = req.headers['accept-encoding'] ?? '';
   const encoding = /\bbr\b/.test(accept) ? 'br' : /\bgzip\b/.test(accept) ? 'gzip' : null;
+
+  // The page carries Dashboard's values (#ewo-config, a data block the CSP allows).
+  if (entry.file === INDEX) {
+    const body = await page(entry, encoding);
+    res.writeHead(200, { ...headers, 'content-length': body.length, vary: 'accept-encoding', ...(encoding && { 'content-encoding': encoding }) });
+    res.end(req.method === 'HEAD' ? undefined : body);
+    return;
+  }
+
   if (encoding && COMPRESSIBLE.has(ext) && entry.size < 8 * 1024 * 1024) {
     const key = `${entry.file}:${entry.mtime.getTime()}:${encoding}`;
     let body = compressed.get(key);

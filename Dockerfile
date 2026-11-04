@@ -20,6 +20,8 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=build /app/dist ./dist
 COPY server ./server
+# Folio's config helper (Dashboard's defaults), which the server imports.
+COPY vendor/ewo/elements/config-server.js vendor/ewo/elements/config-core.js ./vendor/ewo/elements/
 # The snapshot the image ships with; a fresh volume is seeded from it, then refreshed daily.
 COPY data ./data
 # The live snapshot and the resized images live here. Owned by `node` so a fresh named volume
